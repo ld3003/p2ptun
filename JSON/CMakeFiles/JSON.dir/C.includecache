@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/media/user1/camdriod/camdroid/camdriod_stdc/mediac/JSON/cJSON.c
+string.h
+-
+stdio.h
+-
+math.h
+-
+stdlib.h
+-
+float.h
+-
+limits.h
+-
+ctype.h
+-
+JSON/cJSON.h
+/media/user1/camdriod/camdroid/camdriod_stdc/mediac/JSON/JSON/cJSON.h
+
+JSON/cJSON.h
+stdlib.h
+-
+
