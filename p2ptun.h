@@ -44,6 +44,8 @@ extern "C"
 	int p2ptun_send_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int len);
 	int p2ptun_set_recvdata_cb(struct P2PTUN_CONN_SESSION *session, void *cb);
 
+	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);
+
 #ifdef __cplusplus
 };
 #endif

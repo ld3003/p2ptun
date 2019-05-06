@@ -1,8 +1,8 @@
 #include "p2ptun.h"
 #include "p2ptun_common.h"
 
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -10,8 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/select.h>
-#include <errno.h>   
-
+#include <errno.h>
 
 struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
 {
@@ -23,12 +22,10 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
     memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
     session->currentstatus = P2PTUN_STATUS_INIT;
 
-    ret = pipe(session->msgpipe);
+    //ret = pipe(session->msgpipe);
 
     if (ret <= 0)
         return ret;
-
-    
 
     return 0;
 }
@@ -43,12 +40,7 @@ int p2ptun_listen(struct P2PTUN_CONN_SESSION *session)
 
     if (session->currentstatus != P2PTUN_STATUS_INIT)
         return -P2PTUN_STATUSERR;
-
-    /*
-        wait mqtt pipe
-        echo pong
-
-    */
+    session->currentstatus = P2PTUN_STATUS_LISTEN;
 
     return 0;
 }
@@ -104,8 +96,6 @@ int p2ptun_set_recvdata_cb(struct P2PTUN_CONN_SESSION *session, void *cb)
     return 0;
 }
 
-int p2ptun_write_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
+int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
-    write(session->msgpipe,msg,strlen(msg));
-    return 0;
 }
