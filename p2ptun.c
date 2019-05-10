@@ -153,7 +153,7 @@ void p2ptun_server_mainloop(struct P2PTUN_CONN_SESSION *session)
     }
 
     printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
-    sleep(1);
+
     return;
 }
 void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)

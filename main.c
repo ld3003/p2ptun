@@ -8,19 +8,39 @@
 #include "cJSON.h"
 #include "linux_udp.h"
 
+pthread_mutex_t mutex_lock;
+struct P2PTUN_CONN_SESSION *p2psession;
+short udp_port;
+//callback:
+
 void MessageArrived_Fun(void *pbuf, int len)
 {
+	pthread_mutex_lock(&mutex_lock);
 	printf("data = %s\n", (unsigned char *)pbuf); //打印接收到的数据
+	p2ptun_input_msg(p2psession,(char*)pbuf);
+	pthread_mutex_unlock(&mutex_lock);
 }
 
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
+	pthread_mutex_lock(&mutex_lock);
+	p2ptun_input_data(p2psession,data,len);
+	pthread_mutex_unlock(&mutex_lock);
 	return 0;
 }
+
+
+//thread ：
 
 void mqttthread(void *p)
 {
 	cloud_mqtt_thread((void *)MessageArrived_Fun);
+}
+
+
+void udp_recv_thread(void *p)
+{
+	create_udp_sock(udp_port, udpArrived_Fun);
 }
 
 void session_thread(void *p)
@@ -28,14 +48,13 @@ void session_thread(void *p)
 	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
 	for (;;)
 	{
+		pthread_mutex_lock(&mutex_lock);
 		p2ptun_mainloop(session);
+		pthread_mutex_unlock(&mutex_lock);
+		sleep(1);
+		
 	}
 	//
-}
-
-void udp_recv_thread(void *p)
-{
-	create_udp_sock(17789, udpArrived_Fun);
 }
 
 int main(int argc, char **argv)
@@ -44,6 +63,8 @@ int main(int argc, char **argv)
 	pthread_t mqttthreadid;
 	pthread_t s1threadid;
 	pthread_t udpthread;
+
+	pthread_mutex_init(&mutex_lock,NULL);
 
 	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
 	{
@@ -57,7 +78,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	struct P2PTUN_CONN_SESSION *p2psession = p2ptun_alloc_session();
+	p2psession = p2ptun_alloc_session();
 	p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 
 	while ((ret = getopt(argc, argv, "sc")) != -1)
@@ -67,10 +88,12 @@ int main(int argc, char **argv)
 		case 's':
 			printf("running in server\n");
 			p2psession->workmode = P2PTUN_WORKMODE_SERVER;
+			udp_port = 17788;
 			break;
 		case 'c':
 			printf("running in client\n");
 			p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
+			udp_port = 17789;
 			break;
 		default:
 			return -1;
