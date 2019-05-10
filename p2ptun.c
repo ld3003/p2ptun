@@ -19,10 +19,7 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername, unsigned char w
     session->cur_status = P2PTUN_STATUS_INIT;
     snprintf(session->peername, sizeof(session->peername), "%s", peername);
     session->workmode = workmode;
-    if (ret <= 0)
-        return ret;
-
-    return 0;
+    return session;
 }
 
 int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
@@ -49,6 +46,7 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
 
 void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
 {
+
     switch (session->cur_status)
     {
     case P2PTUN_STATUS_INIT:
@@ -95,6 +93,9 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
     default:
         break;
     }
+
+    printf("RUNNING session:%s\n", session->peername);
+    sleep(1);
     return;
     //
 }

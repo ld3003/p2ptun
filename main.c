@@ -105,9 +105,31 @@ void mqttthread(void *p)
 	cloud_mqtt_thread((void *)MessageArrived_Fun);
 }
 
+void session1_thread(void *p)
+{
+	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
+	for(;;)
+	{
+		p2ptun_mainloop(session);
+	}
+	//
+}
+
+void session2_thread(void *p)
+{
+	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
+	for(;;)
+	{
+		p2ptun_mainloop(session);
+	}
+	//
+}
+
 int main(int argc, char **argv)
 {
 	pthread_t mqttthreadid;
+	pthread_t s1threadid;
+	pthread_t s2threadid;
 	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
 	{
 		printf("create error!\n");
@@ -116,7 +138,21 @@ int main(int argc, char **argv)
 	struct P2PTUN_CONN_SESSION *p2psession_dev1 = p2ptun_alloc_session("device1", P2PTUN_WORKMODE_CLIENT);
 	struct P2PTUN_CONN_SESSION *p2psession_dev2 = p2ptun_alloc_session("device2", P2PTUN_WORKMODE_SERVER);
 
-	for(;;)
+
+	printf("create session1_thread \n");
+	if ((pthread_create(&s1threadid, NULL, session1_thread, (void *)p2psession_dev1)) == -1)
+	{
+		printf("create error!\n");
+		return -1;
+	}
+	printf("create session2_thread \n");
+	if ((pthread_create(&s2threadid, NULL, session2_thread, (void *)p2psession_dev2)) == -1)
+	{
+		printf("create error!\n");
+		return -1;
+	}
+
+	for (;;)
 	{
 		sleep(1);
 	}
