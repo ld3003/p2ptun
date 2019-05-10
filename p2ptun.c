@@ -9,17 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 
-struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername, unsigned char workmode)
+struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
 {
     int ret;
     struct P2PTUN_CONN_SESSION *session;
     session = malloc(sizeof(struct P2PTUN_CONN_SESSION));
     if (session <= 0)
         return -P2PTUN_MEMERR;
-    memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
-    session->cur_status = P2PTUN_STATUS_INIT;
-    snprintf(session->peername, sizeof(session->peername), "%s", peername);
-    session->workmode = workmode;
     return session;
 }
 
@@ -108,7 +104,7 @@ void p2ptun_client_mainloop(struct P2PTUN_CONN_SESSION *session)
 
     case P2PTUN_STATUS_CONNECTING:
 
-        session->out_msg("PING");
+        //session->out_msg("PING");
         /*
             发送MQTT PING命令
         */
@@ -138,7 +134,7 @@ void p2ptun_client_mainloop(struct P2PTUN_CONN_SESSION *session)
         break;
     }
 
-    printf("RUNNING session:%s %d\n", session->peername, session->status_time.sec);
+    printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
     sleep(1);
     return;
 }
@@ -156,7 +152,7 @@ void p2ptun_server_mainloop(struct P2PTUN_CONN_SESSION *session)
         break;
     }
 
-    printf("RUNNING session:%s %d\n", session->peername, session->status_time.sec);
+    printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
     sleep(1);
     return;
 }
@@ -165,11 +161,12 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
     if (session->workmode == P2PTUN_WORKMODE_CLIENT)
     {
         p2ptun_client_mainloop(session);
-    }else
+    }
+    else
     {
         p2ptun_server_mainloop(session);
     }
-    
+
     //
 }
 

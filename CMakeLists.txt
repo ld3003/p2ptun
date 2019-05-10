@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 SET(CMAKE_C_COMPILER   gcc)
 SET(CMAKE_CXX_COMPILER g++)
 
+SET(CMAKE_BUILD_TYPE "Debug")
+
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 project(mediac)
