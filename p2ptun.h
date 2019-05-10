@@ -9,7 +9,7 @@ extern "C"
 #endif
 
 	typedef int (*OUTPUT_MSG)(char *msg);
-	typedef void (*OUTPUT_UDP)(unsigned char *data , int length);
+	typedef void (*OUTPUT_DAT)(unsigned char *data, int length);
 
 	enum
 	{
@@ -17,14 +17,6 @@ extern "C"
 		P2PTUN_ERROR,
 		P2PTUN_MEMERR,
 		P2PTUN_STATUSERR,
-	};
-
-	enum
-	{
-		P2PTUN_STATUS_INIT,
-		P2PTUN_STATUS_LISTEN,
-		P2PTUN_STATUS_CONNECTING,
-		P2PTUN_STATUS_CONNECTED,
 	};
 
 	struct P2PTUN_CONN_SESSION
@@ -37,17 +29,17 @@ extern "C"
 		unsigned int status_time;
 
 		OUTPUT_MSG out_msg;
-		OUTPUT_UDP out_udp;
-
+		OUTPUT_DAT out_dat;
+		OUTPUT_DAT out_p2pdat;
 	};
 
-	struct P2PTUN_CONN_SESSION *p2ptun_alloc_session();
+	struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername);
 	int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session);
 
 	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);
-	int p2ptun_input_udpdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
-	void p2ptun_run(struct P2PTUN_CONN_SESSION *session);
-	
+	int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
+	int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
+	void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session);
 
 #ifdef __cplusplus
 };

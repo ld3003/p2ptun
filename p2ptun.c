@@ -1,18 +1,14 @@
 #include "p2ptun.h"
 #include "p2ptun_common.h"
+#include "p2ptun_session_status.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <sys/select.h>
-#include <errno.h>
 
-struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
+struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername)
 {
     int ret;
     struct P2PTUN_CONN_SESSION *session;
@@ -21,6 +17,7 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
         return -P2PTUN_MEMERR;
     memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
     session->status = P2PTUN_STATUS_INIT;
+    snprintf(session->peername,sizeof(session->peername),"%s",peername);
 
     if (ret <= 0)
         return ret;
@@ -33,22 +30,33 @@ int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
     return 0;
 }
 
-
 int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
+    //
+    return 0;
+}
+int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
+{
+    //
+    return 0;
 }
 
-void p2ptun_run(struct P2PTUN_CONN_SESSION *session)
+int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-    switch(session->status)
+    //
+    return 0;
+}
+
+void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
+{
+    switch (session->status)
     {
-        default:
+    default:
         break;
     }
     return;
     //
 }
-
 
 #if 0
 int p2ptun_listen(struct P2PTUN_CONN_SESSION *session)
