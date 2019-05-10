@@ -20,9 +20,7 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
     if (session <= 0)
         return -P2PTUN_MEMERR;
     memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
-    session->currentstatus = P2PTUN_STATUS_INIT;
-
-    //ret = pipe(session->msgpipe);
+    session->status = P2PTUN_STATUS_INIT;
 
     if (ret <= 0)
         return ret;
@@ -35,12 +33,30 @@ int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
     return 0;
 }
 
+
+int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
+{
+}
+
+void p2ptun_run(struct P2PTUN_CONN_SESSION *session)
+{
+    switch(session->status)
+    {
+        default:
+        break;
+    }
+    return;
+    //
+}
+
+
+#if 0
 int p2ptun_listen(struct P2PTUN_CONN_SESSION *session)
 {
 
-    if (session->currentstatus != P2PTUN_STATUS_INIT)
+    if (session->status != P2PTUN_STATUS_INIT)
         return -P2PTUN_STATUSERR;
-    session->currentstatus = P2PTUN_STATUS_LISTEN;
+    session->status = P2PTUN_STATUS_LISTEN;
 
     return 0;
 }
@@ -95,7 +111,4 @@ int p2ptun_set_recvdata_cb(struct P2PTUN_CONN_SESSION *session, void *cb)
 {
     return 0;
 }
-
-int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
-{
-}
+#endif

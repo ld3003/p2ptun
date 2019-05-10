@@ -3,5 +3,6 @@
 
 
 int read_timeout(int fd, void *buf, unsigned int count, int time);
+unsigned int get_sys_time();
 
 #endif
