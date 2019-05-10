@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "p2ptun.h"
 #include "MQTTLinux.h"
@@ -108,7 +109,7 @@ void mqttthread(void *p)
 void session1_thread(void *p)
 {
 	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
-	for(;;)
+	for (;;)
 	{
 		p2ptun_mainloop(session);
 	}
@@ -118,7 +119,7 @@ void session1_thread(void *p)
 void session2_thread(void *p)
 {
 	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
-	for(;;)
+	for (;;)
 	{
 		p2ptun_mainloop(session);
 	}
@@ -127,25 +128,42 @@ void session2_thread(void *p)
 
 int main(int argc, char **argv)
 {
+	int ret;
 	pthread_t mqttthreadid;
 	pthread_t s1threadid;
 	pthread_t s2threadid;
+
+	while ((ret = getopt(argc, argv, "sc")) != -1)
+	{
+		switch (ret)
+		{
+		case 's':
+			printf("running in server\n");
+			break;
+		case 'c':
+			printf("running in client\n");
+			break;
+		default:
+			return -1;
+			break;
+		}
+	}
+
 	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
 	{
-		printf("create error!\n");
+		printf("create error !\n");
 		return -1;
 	}
 	struct P2PTUN_CONN_SESSION *p2psession_dev1 = p2ptun_alloc_session("device1", P2PTUN_WORKMODE_CLIENT);
 	struct P2PTUN_CONN_SESSION *p2psession_dev2 = p2ptun_alloc_session("device2", P2PTUN_WORKMODE_SERVER);
 
-
-	printf("create session1_thread \n");
+	printf("create session1_thread !\n");
 	if ((pthread_create(&s1threadid, NULL, session1_thread, (void *)p2psession_dev1)) == -1)
 	{
-		printf("create error!\n");
+		printf("create error !\n");
 		return -1;
 	}
-	printf("create session2_thread \n");
+	printf("create session2_thread !\n");
 	if ((pthread_create(&s2threadid, NULL, session2_thread, (void *)p2psession_dev2)) == -1)
 	{
 		printf("create error!\n");

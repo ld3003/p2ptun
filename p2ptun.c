@@ -1,6 +1,7 @@
 #include "p2ptun.h"
 #include "p2ptun_common.h"
 #include "p2ptun_session_status.h"
+#include "cJSON.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,51 @@ int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
     //
+    cJSON *pSub;
+    cJSON *pJson;
+
+    if (NULL == msg)
+    {
+        return;
+    }
+    pJson = cJSON_Parse(msg);
+    if (NULL == pJson)
+    {
+        return;
+    }
+
+    pSub = cJSON_GetObjectItem(pJson, "cmd");
+    if (NULL != pSub)
+    {
+        int seq = 0;
+        char *name = 0;
+        int cmd = pSub->valueint;
+        pSub = cJSON_GetObjectItem(pJson, "seq");
+        if (NULL != pSub)
+        {
+            seq = pSub->valueint;
+        }else{return;}
+
+        pSub = cJSON_GetObjectItem(pJson, "name");
+        if (NULL != pSub)
+        {
+            name = pSub->string;
+        }else{return;}
+
+        switch (cmd)
+        {
+        case 1:
+        case 2:
+            break;
+        default:
+            break;
+        }
+
+        //data_2_json(cmd, seq, 0, "");
+    }
+
+    cJSON_Delete(pJson);
+
     return 0;
 }
 int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
@@ -52,7 +98,6 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
     case P2PTUN_STATUS_INIT:
         if (session->workmode == P2PTUN_WORKMODE_CLIENT)
         {
-            //
             p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING);
         }
         else if (session->workmode == P2PTUN_WORKMODE_SERVER)
@@ -94,7 +139,7 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
         break;
     }
 
-    printf("RUNNING session:%s\n", session->peername);
+    printf("RUNNING session:%s %d\n", session->peername, session->status_time.sec);
     sleep(1);
     return;
     //
