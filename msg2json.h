@@ -1,0 +1,14 @@
+#ifndef __msgjson_h__
+#define __msgjson_h__
+
+char *ping(char *to , char *from);
+char *pong(char *to , char *from);
+
+char *get_net_type(char *to , char *from);
+char *resp_net_type(char *to , char *from , int nettype , char *ip , int port);
+
+char *request_udp(char *to , char *from , char *ip , int port);
+
+char *notify_connected(char *to , char *from);
+
+#endif
