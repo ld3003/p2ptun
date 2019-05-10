@@ -8,7 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
-struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername)
+struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername, unsigned char workmode)
 {
     int ret;
     struct P2PTUN_CONN_SESSION *session;
@@ -16,9 +16,9 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername)
     if (session <= 0)
         return -P2PTUN_MEMERR;
     memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
-    session->status = P2PTUN_STATUS_INIT;
-    snprintf(session->peername,sizeof(session->peername),"%s",peername);
-
+    session->cur_status = P2PTUN_STATUS_INIT;
+    snprintf(session->peername, sizeof(session->peername), "%s", peername);
+    session->workmode = workmode;
     if (ret <= 0)
         return ret;
 
@@ -49,8 +49,49 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
 
 void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
 {
-    switch (session->status)
+    switch (session->cur_status)
     {
+    case P2PTUN_STATUS_INIT:
+        if (session->workmode == P2PTUN_WORKMODE_CLIENT)
+        {
+            //
+            p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING);
+        }
+        else if (session->workmode == P2PTUN_WORKMODE_SERVER)
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
+        }
+
+        break;
+
+    case P2PTUN_STATUS_LISTEN:
+        break;
+    case P2PTUN_STATUS_CONNECTING:
+        /*
+            发送MQTT PING命令
+        */
+        break;
+    case P2PTUN_STATUS_CONNECTING_WAIT_PONE:
+        /*
+            等待 PONG 命令
+            间隔500ms发一次ping，5秒钟认为超时，应该写在红定义
+        */
+        break;
+    case P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE:
+        /*
+            等待 GET NETTYPE 命令
+            间隔500ms发一次 NETTYPE，5秒钟认为超时，应该写在红定义
+        */
+        break;
+
+    case 888:
+        /*
+            双方均为CLONE类型
+            发送UDP PING
+            通知对方发送UDP PING ，等待ECHO报文
+        */
+        break;
+
     default:
         break;
     }
@@ -58,65 +99,9 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
     //
 }
 
-#if 0
-int p2ptun_listen(struct P2PTUN_CONN_SESSION *session)
+void p2ptun_setstatus(struct P2PTUN_CONN_SESSION *session, unsigned char status)
 {
-
-    if (session->status != P2PTUN_STATUS_INIT)
-        return -P2PTUN_STATUSERR;
-    session->status = P2PTUN_STATUS_LISTEN;
-
-    return 0;
+    session->prev_status = session->cur_status;
+    session->cur_status = status;
+    p2ptun_get_current_time(&session->status_time);
 }
-
-int p2ptun_connect(struct P2PTUN_CONN_SESSION *session, char *peername)
-{
-
-    /*
-        session->socketfd = socket
-        connect 
-
-        pub -> 
-        wait mqtt pipe
-
-
-        在信令系统查询对方是否在线
-        如果不在线则放弃
-
-        获取网络类型
-            发送两个 udp
-            看两个返回的UDP端口是否一致
-        通过 信令 获取对方网络类型
-
-        1，双方都是锥形NAT
-            向对方的 公网IP:PORT 发送打洞包
-            通过信令 通知对方 向本机的公网IP:PORT发送 打洞包
-
-            若收到对方打洞包
-                向对方发送PING包
-                若收到对方的PONG包后此时才认为连接成功
-
-        2，若本机是对称型，对方那公是锥形
-            向对方的 公网IP:PORT 发送打洞包
-            通过信令 通知对方 向本机的公网IP:PORT发送 打洞包
-
-
-
-    */
-
-    return 0;
-}
-int p2ptun_disconnect(struct P2PTUN_CONN_SESSION *session)
-{
-    return 0;
-}
-
-int p2ptun_send_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int len)
-{
-    return 0;
-}
-int p2ptun_set_recvdata_cb(struct P2PTUN_CONN_SESSION *session, void *cb)
-{
-    return 0;
-}
-#endif

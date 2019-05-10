@@ -1,7 +1,23 @@
 #ifndef __p2ptun_common_h__
 #define __p2ptun_common_h__
 
-int read_timeout(int fd, void *buf, unsigned int count, int time);
-unsigned int get_sys_time();
+typedef char p2ptun_int8;
+typedef unsigned char p2ptun_uint8;
+
+typedef short p2ptun_int16;
+typedef unsigned short p2ptun_uint16;
+
+typedef int p2ptun_int32;
+typedef unsigned int p2ptun_uint32;
+
+struct P2PTUN_TIME
+{
+
+    p2ptun_uint32 sec;  /* Seconds.  */
+    p2ptun_uint32 usec; /* Microseconds.  */
+};
+
+int p2ptun_read_timeout(int fd, void *buf, unsigned int count, int time);
+void p2ptun_get_current_time(struct P2PTUN_TIME *time);
 
 #endif
