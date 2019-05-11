@@ -24,7 +24,7 @@
 #define MQTT_TOPIC_SIZE     (128)		//订阅和发布主题长度
 #define MQTT_BUF_SIZE       (8 * 1024) 	//接收后发送缓冲区大小
 
-#define MQTT_HOST "198.41.30.241"		//ip地址
+#define MQTT_HOST "easy-iot.cc"		//ip地址
 #define MQTT_PORT 1883					//端口号
 #define MQTT_USER ""				    //用户名
 #define MQTT_PASS ""			        //密码
