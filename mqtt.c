@@ -30,6 +30,8 @@
 #define MQTT_PASS ""			        //密码
 #define MQTT_CLIENT_ID "17849359"		//客户端标识
 
+char mqtt_deviceid[32];
+
 typedef struct {
     Network Network;
     Client Client;
@@ -79,7 +81,7 @@ void iot_mqtt_init(Cloud_MQTT_t *piot_mqtt , pMessageArrived_Fun recvcb)
 {
     memset(piot_mqtt, '\0', sizeof(Cloud_MQTT_t));
 
-    sprintf(piot_mqtt->sub_topic, "%s%s/todev", gateway.model, gateway.company);	//将初始化好的订阅主题填到数组中
+    sprintf(piot_mqtt->sub_topic, "%s%s/%s", "/easyiot","/videots/",mqtt_deviceid);	//将初始化好的订阅主题填到数组中
     printf("subscribe:%s\n", piot_mqtt->sub_topic);
 
     sprintf(piot_mqtt->pub_topic, "%s%s/toapp", gateway.model, gateway.company);	//将初始化好的发布主题填到数组中
@@ -228,16 +230,13 @@ void mqtt_data_rx_cb(void *pbuf, int len)
     }
 }
 
-int mqtt_data_write(char *pbuf, int len, char retain)
+int mqtt_data_write(char *topic , char *pbuf, int len, char retain)
 {
     Cloud_MQTT_t *piot_mqtt = &Iot_mqtt; 
     int ret = 0;
     MQTTMessage message;
-    char my_topic[128] = {0};
 
-    strcpy(my_topic, piot_mqtt->pub_topic);
-
-    printf("publish topic is :%s\r\n", my_topic);
+    printf("publish topic is :%s\r\n", topic);
     printf("mqtt tx len = %d\r\n", len);
 
     message.payload = (void *)pbuf;
@@ -250,7 +249,7 @@ int mqtt_data_write(char *pbuf, int len, char retain)
         message.retained = 0;
     }
 
-    ret = MQTTPublish(&piot_mqtt->Client, my_topic, &message);	//发布一个主题
+    ret = MQTTPublish(&piot_mqtt->Client, topic, &message);	//发布一个主题
 
     return ret;
 }

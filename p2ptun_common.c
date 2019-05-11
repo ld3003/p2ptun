@@ -63,8 +63,9 @@ void p2ptun_get_current_time(struct P2PTUN_TIME *time)
 }
 int t1_sub_t2_sec(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2)
 {
-    if (t2->sec > t1->sec)
-        return t2->sec - t1->sec;
+    printf("t1 %d t2%d\n",t1->sec , t2->sec);
+    if (t1->sec > t2->sec)
+        return t1->sec - t2->sec;
     return 0;
 }
 int t1_sub_t2_ms(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2)

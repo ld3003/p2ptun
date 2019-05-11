@@ -2,6 +2,7 @@
 #include "p2ptun_common.h"
 #include "p2ptun_session_status.h"
 #include "cJSON.h"
+#include "msg2json.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,59 +27,30 @@ int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 
 int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
-    //
-    cJSON *pSub;
-    cJSON *pJson;
-
-    if (NULL == msg)
+    struct JSONDATA dat;
+    if (json2data(msg, &dat) == 0)
     {
-        return;
-    }
-    pJson = cJSON_Parse(msg);
-    if (NULL == pJson)
-    {
-        return;
-    }
-
-    pSub = cJSON_GetObjectItem(pJson, "cmd");
-    if (NULL != pSub)
-    {
-        int seq = 0;
-        char *name = 0;
-        int cmd = pSub->valueint;
-        pSub = cJSON_GetObjectItem(pJson, "seq");
-        if (NULL != pSub)
+        switch (session->cur_status)
         {
-            seq = pSub->valueint;
-        }
-        else
-        {
-            return;
-        }
-
-        pSub = cJSON_GetObjectItem(pJson, "name");
-        if (NULL != pSub)
-        {
-            name = pSub->string;
-        }
-        else
-        {
-            return;
-        }
-
-        switch (cmd)
-        {
-        case 101:
-        case 102:
+        case P2PTUN_STATUS_CONNECTING_WAIT_PONG:
+            if (dat.cmd == 8101)
+            {
+                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
+                //
+            }
             break;
-        default:
+
+        case P2PTUN_STATUS_LISTEN:
+        {
+            if (dat.cmd == 0101)
+                p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE);
             break;
         }
 
-        //data_2_json(cmd, seq, 0, "");
+        case P2PTUN_STATUS_LISTEN_HANDSHAKE:
+            break;
+        }
     }
-
-    cJSON_Delete(pJson);
 
     return 0;
 }
@@ -97,156 +69,87 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
 
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
     {
-        cJSON *pSub;
-        cJSON *pJson;
-        //data[length] = 0x0;
-        printf("JONS:%s\n", data);
-        if (NULL == data)
+        struct JSONDATA dat;
+        if (json2data(data, &dat) == 0)
         {
-            printf("err json\n");
-            return;
-        }
-        pJson = cJSON_Parse(data);
-        if (NULL == pJson)
-        {
-            printf("err json\n");
-            return;
-        }
-
-        pSub = cJSON_GetObjectItem(pJson, "cmd");
-        if (NULL != pSub)
-        {
-            int seq = 0;
-            int port = 0;
-            char *name = 0;
-            int cmd = pSub->valueint;
-            pSub = cJSON_GetObjectItem(pJson, "seq");
-            if (NULL != pSub)
+            if (dat.cmd == 101)
             {
-                seq = pSub->valueint;
-            }
-            else
-            {
-                return;
-            }
-
-            switch (cmd)
-            {
-            case 101:
-            {
-                pSub = cJSON_GetObjectItem(pJson, "port");
-                if (NULL != pSub)
+                snprintf(session->local_ipaddr, 32, "%s", dat.addr);
+                if (session->local_port == dat.port)
                 {
-                    port = pSub->valueint;
-                    session->local_port = port;
+                    session->local_nettype = 0;
                 }
                 else
                 {
-                    return;
+                    session->local_nettype = 1;
                 }
-
-                pSub = cJSON_GetObjectItem(pJson, "addr");
-                if (NULL != pSub)
-                {
-                    snprintf(session->local_ipaddr, 32, "%s", pSub->valuestring);
-                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
-                    printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
-                }
-                else
-                {
-                    return;
-                }
-                break;
+                printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
             }
-            case 102:
-                break;
-            default:
-                break;
-            }
-
-            //data_2_json(cmd, seq, 0, "");
         }
         break;
     }
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE: //P2PTUN_STATUS_CONNECTING_WAIT_UDPTUN:
     {
-        cJSON *pSub;
-        cJSON *pJson;
-        //data[length] = 0x0;
-        printf("JONS:%s\n", data);
-        if (NULL == data)
+        struct JSONDATA dat;
+        if (json2data(data, &dat) == 0)
         {
-            printf("err json\n");
-            return;
-        }
-        pJson = cJSON_Parse(data);
-        if (NULL == pJson)
-        {
-            printf("err json\n");
-            return;
+            if (dat.cmd == 101)
+            {
+                snprintf(session->local_ipaddr, 32, "%s", dat.addr);
+                session->local_port = dat.port;
+                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1);
+                printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
+                session->out_dat("PING0", 5, 1);
+            }
         }
 
-        pSub = cJSON_GetObjectItem(pJson, "cmd");
-        if (NULL != pSub)
-        {
-            int seq = 0;
-            int port = 0;
-            char *name = 0;
-            int cmd = pSub->valueint;
-            pSub = cJSON_GetObjectItem(pJson, "seq");
-            if (NULL != pSub)
-            {
-                seq = pSub->valueint;
-            }
-            else
-            {
-                return;
-            }
-
-            switch (cmd)
-            {
-            case 101:
-            {
-                pSub = cJSON_GetObjectItem(pJson, "port");
-                if (NULL != pSub)
-                {
-                    port = pSub->valueint;
-                    session->local_port = port;
-                }
-                else
-                {
-                    return;
-                }
-
-                pSub = cJSON_GetObjectItem(pJson, "addr");
-                if (NULL != pSub)
-                {
-                    snprintf(session->local_ipaddr, 32, "%s", pSub->valuestring);
-                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1);
-                    printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
-                    session->out_dat("PING0", 5, 1);
-                }
-                else
-                {
-                    return;
-                }
-                break;
-            }
-            case 102:
-                break;
-            default:
-                break;
-            }
-
-            //data_2_json(cmd, seq, 0, "");
-        }
-
-        cJSON_Delete(pJson);
         break;
     }
+
+    case P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE1:
+    {
+        struct JSONDATA dat;
+        if (json2data(data, &dat) == 0)
+        {
+            if (dat.cmd == 101)
+            {
+                snprintf(session->local_ipaddr, 32, "%s", dat.addr);
+                if (session->local_port == dat.port)
+                {
+                    session->local_nettype = 0;
+                }
+                else
+                {
+                    session->local_nettype = 1;
+                }
+                printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
+            }
+        }
+        break;
     }
-    //
-    return 0;
+    case P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE:
+    {
+        struct JSONDATA dat;
+        if (json2data(data, &dat) == 0)
+        {
+            if (dat.cmd == 101)
+            {
+                snprintf(session->local_ipaddr, 32, "%s", dat.addr);
+                session->local_port = dat.port;
+                p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE1);
+                printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
+                session->out_dat("PING0", 5, 1);
+            }
+        }
+
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    //data_2_json(cmd, seq, 0, "");
 }
 
 void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session)
@@ -260,7 +163,6 @@ void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session)
     case P2PTUN_STATUS_CONNECTING:
         p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE);
         session->out_dat("PING0", 5, 0);
-
         //session->out_msg("PING");
         /*
             发送MQTT PING命令
@@ -327,7 +229,7 @@ void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session)
         case 1:
         case 3:
         case 5:
-            //session->out_msg("{\"ping\"}}");
+            session->out_msg("ping");
             break;
         default:
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
@@ -338,11 +240,30 @@ void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session)
         break;
     }
     case P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE:
+    {
         /*
             等待 GET NETTYPE 命令
             间隔500ms发一次 NETTYPE，5秒钟认为超时，应该写在红定义
         */
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        switch (cmp_sec)
+        {
+        case 0:
+        case 2:
+        case 4:
+            break;
+        case 1:
+        case 3:
+        case 5:
+            session->out_msg("getnettype");
+            break;
+        default:
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+            //time out
+            break;
+        }
         break;
+    }
 
     case 888:
         /*
@@ -356,7 +277,7 @@ void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session)
         break;
     }
 
-    printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
+    //printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
     return;
 }
 

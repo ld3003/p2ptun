@@ -19,9 +19,11 @@ enum  iot_ctrl_status_t
 	IOT_STATUS_DROP,
 };
 
+extern char mqtt_deviceid[32];
+
 typedef void  (*pMessageArrived_Fun)(void*,int len);
 
-int mqtt_data_write(char *pbuf, int len, char retain);
+int mqtt_data_write(char *topic, char *pbuf, int len, char retain);
 
 void mqtt_data_rx_cb(void *pbuf, int len);
 void *cloud_mqtt_thread(void *arg);

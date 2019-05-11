@@ -31,7 +31,9 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 
 void __send_msg(char *msg)
 {
-	//
+	char topic[64];
+	snprintf(topic, 64, "/easyiot/videots/%s", p2psession->remote_peername);
+	mqtt_data_write(topic, msg, strlen(msg), 0);
 }
 
 int __senddata_func(unsigned char *data, int len, char pkgtype)
@@ -66,6 +68,8 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 
 void mqttthread(void *p)
 {
+	char topic[64];
+	snprintf(mqtt_deviceid, sizeof(mqtt_deviceid), "%s", p2psession->local_peername);
 	cloud_mqtt_thread((void *)MessageArrived_Fun);
 }
 
@@ -94,20 +98,6 @@ int main(int argc, char **argv)
 	pthread_t s1threadid;
 	pthread_t udpthread;
 
-	pthread_mutex_init(&mutex_lock, NULL);
-
-	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
-	{
-		printf("create error !\n");
-		return -1;
-	}
-
-	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
-	{
-		printf("create error !\n");
-		return -1;
-	}
-
 	p2psession = p2ptun_alloc_session();
 	p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 	p2psession->out_dat = __senddata_func;
@@ -120,17 +110,34 @@ int main(int argc, char **argv)
 		case 's':
 			printf("running in server\n");
 			p2psession->workmode = P2PTUN_WORKMODE_SERVER;
+			sprintf(p2psession->local_peername, "device_ser");
 			udp_port = 17788;
 			break;
 		case 'c':
 			printf("running in client\n");
 			p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
+			sprintf(p2psession->remote_peername, "device_ser");
+			sprintf(p2psession->local_peername, "device_cli");
 			udp_port = 17789;
 			break;
 		default:
 			return -1;
 			break;
 		}
+	}
+
+	pthread_mutex_init(&mutex_lock, NULL);
+
+	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
+	{
+		printf("create error !\n");
+		return -1;
+	}
+
+	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
+	{
+		printf("create error !\n");
+		return -1;
 	}
 
 	printf("create session1_thread !\n");
