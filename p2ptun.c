@@ -9,17 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 
-struct P2PTUN_CONN_SESSION *p2ptun_alloc_session(char *peername, unsigned char workmode)
+struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
 {
     int ret;
     struct P2PTUN_CONN_SESSION *session;
     session = malloc(sizeof(struct P2PTUN_CONN_SESSION));
     if (session <= 0)
         return -P2PTUN_MEMERR;
-    memset(session, 0x0, sizeof(struct P2PTUN_CONN_SESSION));
-    session->cur_status = P2PTUN_STATUS_INIT;
-    snprintf(session->peername, sizeof(session->peername), "%s", peername);
-    session->workmode = workmode;
     return session;
 }
 
@@ -54,13 +50,21 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
         if (NULL != pSub)
         {
             seq = pSub->valueint;
-        }else{return;}
+        }
+        else
+        {
+            return;
+        }
 
         pSub = cJSON_GetObjectItem(pJson, "name");
         if (NULL != pSub)
         {
             name = pSub->string;
-        }else{return;}
+        }
+        else
+        {
+            return;
+        }
 
         switch (cmd)
         {
@@ -90,31 +94,22 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
     return 0;
 }
 
-void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
+void p2ptun_client_mainloop(struct P2PTUN_CONN_SESSION *session)
 {
-
     switch (session->cur_status)
     {
     case P2PTUN_STATUS_INIT:
-        if (session->workmode == P2PTUN_WORKMODE_CLIENT)
-        {
-            p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING);
-        }
-        else if (session->workmode == P2PTUN_WORKMODE_SERVER)
-        {
-            p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
-        }
-
+        p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING);
         break;
 
-    case P2PTUN_STATUS_LISTEN:
-        break;
     case P2PTUN_STATUS_CONNECTING:
+
+        //session->out_msg("PING");
         /*
             发送MQTT PING命令
         */
         break;
-    case P2PTUN_STATUS_CONNECTING_WAIT_PONE:
+    case P2PTUN_STATUS_CONNECTING_WAIT_PONG:
         /*
             等待 PONG 命令
             间隔500ms发一次ping，5秒钟认为超时，应该写在红定义
@@ -139,9 +134,39 @@ void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
         break;
     }
 
-    printf("RUNNING session:%s %d\n", session->peername, session->status_time.sec);
+    printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
     sleep(1);
     return;
+}
+
+void p2ptun_server_mainloop(struct P2PTUN_CONN_SESSION *session)
+{
+    switch (session->cur_status)
+    {
+    case P2PTUN_STATUS_INIT:
+        p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
+        break;
+    case P2PTUN_STATUS_LISTEN:
+        break;
+    default:
+        break;
+    }
+
+    printf("RUNNING session:%s %d\n", session->local_peername, session->status_time.sec);
+
+    return;
+}
+void p2ptun_mainloop(struct P2PTUN_CONN_SESSION *session)
+{
+    if (session->workmode == P2PTUN_WORKMODE_CLIENT)
+    {
+        p2ptun_client_mainloop(session);
+    }
+    else
+    {
+        p2ptun_server_mainloop(session);
+    }
+
     //
 }
 
