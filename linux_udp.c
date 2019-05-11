@@ -3,15 +3,17 @@
 static int linux_udp_sock;
 static unsigned char udp_recv_buffer[2048];
 
-void send_linux_udp_data(struct sockaddr_in *addr, unsigned char *data, int len)
+int send_linux_udp_data(struct sockaddr_in *addr, unsigned char *data, int len)
 {
     int n;
-    n = sendto(linux_udp_sock, data, len, 0, addr, sizeof(struct sockaddr_in));
+    n = sendto(linux_udp_sock, data, len, 0, addr, sizeof(*addr));
     if (n < 0)
     {
         perror("sendto");
-        return ;
     }
+
+    return n;
+
     //
 }
 
@@ -27,19 +29,19 @@ void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb)
     size_t n;
     socklen_t len = sizeof(clientAddr);
 
-    int linux_udp_sock;
     if ((linux_udp_sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
         perror("socket");
         exit(1);
     }
+    printf("udp socket creat sucess .\n");
     //port bind to server
     if (bind(linux_udp_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
     {
         perror("bind");
         exit(1);
     }
-
+    printf("udp socket bind sucess .\n");
     for (;;)
     {
         n = recvfrom(linux_udp_sock, udp_recv_buffer, sizeof(udp_recv_buffer), 0, (struct sockaddr *)&clientAddr, &len);
@@ -56,3 +58,4 @@ void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb)
         }
     }
 }
+

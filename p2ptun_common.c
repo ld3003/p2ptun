@@ -61,3 +61,20 @@ void p2ptun_get_current_time(struct P2PTUN_TIME *time)
     time->sec = tv.tv_sec;
     time->usec = tv.tv_usec;
 }
+int t1_sub_t2_sec(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2)
+{
+    if (t2->sec > t1->sec)
+        return t2->sec - t1->sec;
+    return 0;
+}
+int t1_sub_t2_ms(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2)
+{
+    return 0;
+}
+
+int get_sub_tim_sec(struct P2PTUN_TIME *t2)
+{
+    struct P2PTUN_TIME t1;
+    p2ptun_get_current_time(&t1);
+    return t1_sub_t2_sec(&t1,t2);
+}

@@ -19,5 +19,8 @@ struct P2PTUN_TIME
 
 int p2ptun_read_timeout(int fd, void *buf, unsigned int count, int time);
 void p2ptun_get_current_time(struct P2PTUN_TIME *time);
+int t1_sub_t2_sec(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2);
+int t1_sub_t2_ms(struct P2PTUN_TIME *t1 , struct P2PTUN_TIME *t2);
+int get_sub_tim_sec(struct P2PTUN_TIME *t2);
 
 #endif
