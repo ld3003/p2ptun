@@ -30,6 +30,45 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             snprintf(session->remote_peername, sizeof(session->remote_peername), "%s", indat.from);
         }
 
+        //P2PTUN_CMD_MQTTGETNTYPE
+        if (indat.cmd == P2PTUN_CMD_MQTTGETNTYPE)
+        {
+            switch (session->cur_status)
+            {
+
+            case P2PTUN_STATUS_LISTEN:
+            case P2PTUN_STATUS_LISTEN_HANDSHAKE:
+
+                if (get_sub_tim_sec(&session->getnettype_time) > 30)
+                {
+                    printf("重新获取网络类型\n");
+                    p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE);
+                    char *json;
+                    struct JSONDATA dat;
+                    dat.cmd = P2PTUN_CMD_MQTTPING;
+                    json = data2json(&dat);
+                    session->out_dat(json, strlen(json), 0);
+                    free(json);
+                }
+                else
+                {
+                    printf("距离上次获取网络类型，不足30秒不用重新获取\n");
+                    char *json;
+                    struct JSONDATA dat;
+                    dat.cmd = P2PTUN_CMD_MQTTRRESPNTYPE;
+                    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+                    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+                    dat.ntype = session->local_nettype;
+                    dat.port = session->local_port;
+                    snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
+                    json = data2json(&dat);
+                    session->out_msg(json);
+                    free(json);
+                }
+                break;
+            }
+        }
+
         switch (session->cur_status)
         {
 
@@ -70,6 +109,22 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
                     session->local_nettype = 1;
                 }
                 printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
+
+                p2ptun_get_current_time(&session->getnettype_time);
+
+                p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE);
+
+                char *json;
+                struct JSONDATA dat;
+                dat.cmd = P2PTUN_CMD_MQTTRRESPNTYPE;
+                snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+                snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+                dat.ntype = session->local_nettype;
+                dat.port = session->local_port;
+                snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
+                json = data2json(&dat);
+                session->out_msg(json);
+                free(json);
             }
         }
         break;

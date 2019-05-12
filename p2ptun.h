@@ -44,7 +44,10 @@ extern "C"
 
 		unsigned char prev_status;
 		unsigned char cur_status;
+
+
 		struct P2PTUN_TIME status_time;
+		struct P2PTUN_TIME getnettype_time;
 
 		OUTPUT_MSG out_msg;
 		OUTPUT_DAT out_dat;

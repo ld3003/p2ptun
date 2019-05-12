@@ -28,7 +28,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
             json = data2json(&dat);
             session->out_msg(json);
             free(json);
-            snprintf(session->remote_peername,sizeof(session->remote_peername),"%s",indat.from);
+            snprintf(session->remote_peername, sizeof(session->remote_peername), "%s", indat.from);
         }
 
         switch (session->cur_status)
@@ -37,10 +37,23 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
             if (indat.cmd == P2PTUN_CMD_MQTTPONG)
             {
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
+                char *json;
+                struct JSONDATA dat;
+                dat.cmd = P2PTUN_CMD_MQTTGETNTYPE;
+                snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+                snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+                json = data2json(&dat);
+                session->out_msg(json);
+                free(json);
                 //
             }
             break;
 
+        case P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE:
+            break;
+
+        default:
+            break;
         }
     }
 
@@ -50,7 +63,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
 
-     switch (session->cur_status)
+    switch (session->cur_status)
     {
     case P2PTUN_STATUS_CONNECTED:
         break;
@@ -72,6 +85,8 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                     session->local_nettype = 1;
                 }
                 printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
+
+                p2ptun_get_current_time(&session->getnettype_time);
 
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
                 char *json;
@@ -112,7 +127,6 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
     default:
         break;
     }
-
 }
 
 void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
@@ -261,7 +275,6 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         }
         break;
     }
-
 
     default:
         break;
