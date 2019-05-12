@@ -59,8 +59,6 @@ extern "C"
 	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);
 	int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
 	int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
-	void p2ptun_server_timer(struct P2PTUN_CONN_SESSION *session);
-	void p2ptun_client_timer(struct P2PTUN_CONN_SESSION *session);
 	void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session);
 	void p2ptun_setstatus(struct P2PTUN_CONN_SESSION *session, unsigned char status);
 
