@@ -1,25 +1,42 @@
 #ifndef __msgjson_h__
 #define __msgjson_h__
 
-char *ping(char *to , char *from);
-char *pong(char *to , char *from);
+/*
 
-char *get_net_type(char *to , char *from);
-char *resp_net_type(char *to , char *from , int nettype , char *ip , int port);
+100:UDP PING
+101:UDP PONG
 
-char *request_udp(char *to , char *from , char *ip , int port);
+102 :MQTTPING
+8102:MQTTPONG
 
-char *notify_connected(char *to , char *from);
+103 :MQTTGETNTYPE
+8103:MQTTGETNTYPE RESP
 
-struct JSONDATA {
+
+
+
+*/
+
+#define P2PTUN_CMD_UDPPING          100
+#define P2PTUN_CMD_UDPPONG          101
+
+#define P2PTUN_CMD_MQTTPING         102
+#define P2PTUN_CMD_MQTTPONG         8102
+
+#define P2PTUN_CMD_MQTTGETNTYPE     103
+
+struct JSONDATA
+{
     int cmd;
     int seq;
+    char from[32];
+    char to[32];
     char addr[32];
     int port;
     int ntype;
 };
 
-int json2data(char *json , struct JSONDATA *dat);
-char* data2json(struct JSONDATA *dat);
+int json2data(char *json, struct JSONDATA *dat);
+char *data2json(struct JSONDATA *dat);
 
 #endif

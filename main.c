@@ -32,7 +32,8 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 void __send_msg(char *msg)
 {
 	char topic[64];
-	snprintf(topic, 64, "/easyiot/videots/%s", p2psession->remote_peername);
+	printf("OUTMSG %s\n",msg);
+	snprintf(topic, 64, "easyiot/videots/%s/p2ptun", p2psession->remote_peername);
 	mqtt_data_write(topic, msg, strlen(msg), 0);
 }
 

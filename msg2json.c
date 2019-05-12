@@ -1,37 +1,11 @@
 #include "msg2json.h"
 #include "cJSON.h"
 
-static char json_string[256];
-
-char *ping(char *to, char *from)
-{
-    return json_string;
-}
-char *pong(char *to, char *from)
-{
-    return json_string;
-}
-
-char *get_net_type(char *to, char *from)
-{
-    return json_string;
-}
-
-char *resp_net_type(char *to, char *from, int nettype, char *ip, int port)
-{
-    return json_string;
-}
-
-char *request_udp(char *to, char *from, char *ip, int port)
-{
-    return json_string;
-}
-
 int json2data(char *json, struct JSONDATA *dat)
 {
     cJSON *pSub;
     cJSON *pJson;
-    //data[length] = 0x0;
+
     printf("JONS:%s\n", json);
     if (NULL == json)
     {
@@ -65,6 +39,18 @@ int json2data(char *json, struct JSONDATA *dat)
         return -1;
     }
 
+    pSub = cJSON_GetObjectItem(pJson, "from");
+    if (NULL != pSub)
+    {
+        snprintf(dat->from, sizeof(dat->from), "%s", pSub->valuestring);
+    }
+
+    pSub = cJSON_GetObjectItem(pJson, "to");
+    if (NULL != pSub)
+    {
+        snprintf(dat->to, sizeof(dat->to), "%s", pSub->valuestring);
+    }
+
     pSub = cJSON_GetObjectItem(pJson, "port");
     if (NULL != pSub)
     {
@@ -82,10 +68,43 @@ int json2data(char *json, struct JSONDATA *dat)
     }
 
     return 0;
-
 }
 
 char *data2json(struct JSONDATA *dat)
 {
-    return 0;
+
+    char *p;
+    cJSON *pJsonRoot = NULL;
+    char tmpstr[32];
+
+    pJsonRoot = cJSON_CreateObject();
+    if (NULL == pJsonRoot)
+    {
+        return 0;
+    }
+
+    cJSON_AddNumberToObject(pJsonRoot, "cmd", dat->cmd);
+    cJSON_AddNumberToObject(pJsonRoot, "seq", dat->seq);
+    cJSON_AddStringToObject(pJsonRoot, "from", dat->from);
+    cJSON_AddStringToObject(pJsonRoot, "to", dat->to);
+    cJSON_AddStringToObject(pJsonRoot, "addr", dat->addr);
+    cJSON_AddNumberToObject(pJsonRoot, "port", dat->port);
+    cJSON_AddNumberToObject(pJsonRoot, "ntype", dat->ntype);
+
+    p = cJSON_Print(pJsonRoot);
+
+    if (NULL == p)
+    {
+        //convert json list to string faild, exit
+        //because sub json pSubJson han been add to pJsonRoot, so just delete pJsonRoot, if you also delete pSubJson, it will coredump, and error is : double free
+
+        cJSON_Delete(pJsonRoot);
+
+        return 0;
+    }
+    //free(p);
+    cJSON_Delete(pJsonRoot);
+
+    return p;
+    //
 }
