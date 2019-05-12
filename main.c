@@ -3,8 +3,6 @@
 #include <unistd.h>
 
 #include "p2ptun.h"
-#include "MQTTLinux.h"
-#include "mqtt.h"
 #include "cJSON.h"
 #include "linux_udp.h"
 
@@ -13,28 +11,37 @@ struct P2PTUN_CONN_SESSION *p2psession;
 short udp_port;
 //callback:
 
-void MessageArrived_Fun(void *pbuf, int len)
-{
-	pthread_mutex_lock(&mutex_lock);
-	printf("data = %s\n", (unsigned char *)pbuf); //打印接收到的数据
-	p2ptun_input_msg(p2psession, (char *)pbuf);
-	pthread_mutex_unlock(&mutex_lock);
-}
+#define HOST_ADDR "47.94.103.232"
+#define HOST_PORT_MSG 39000
+#define HOST_PORT_ECHO1 39001
+#define HOST_PORT_ECHO2 39002
+
 
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
+	printf("MSGRCV:%s\n",data);
+
 	pthread_mutex_lock(&mutex_lock);
-	p2ptun_input_data(p2psession, data, len);
+	if ((addr->sin_port == HOST_PORT_MSG) && (addr->sin_addr.s_addr == inet_addr(HOST_ADDR)))
+	{
+		printf("MSGRCV:%s\n",data);
+		p2ptun_input_msg(p2psession,data);
+	}else{
+		p2ptun_input_data(p2psession, data, len);
+	}
 	pthread_mutex_unlock(&mutex_lock);
 	return 0;
 }
 
 void __send_msg(char *msg)
 {
-	char topic[64];
-	printf("OUTMSG %s\n",msg);
-	snprintf(topic, 64, "easyiot/videots/%s/p2ptun", p2psession->remote_peername);
-	mqtt_data_write(topic, msg, strlen(msg), 0);
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(HOST_PORT_MSG);
+	addr.sin_addr.s_addr = inet_addr(HOST_ADDR);
+	printf("MSGSND:%s\n",msg);
+	return send_linux_udp_data(&addr, msg, strlen(msg));
+
 }
 
 int __senddata_func(unsigned char *data, int len, char pkgtype)
@@ -45,14 +52,14 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 	{
 	case 0:
 		addr.sin_family = AF_INET;
-		addr.sin_port = htons(8883);
-		addr.sin_addr.s_addr = inet_addr("47.93.103.232");
+		addr.sin_port = htons(HOST_PORT_ECHO1);
+		addr.sin_addr.s_addr = inet_addr(HOST_ADDR);
 		return send_linux_udp_data(&addr, data, len);
 		break;
 	case 1:
 		addr.sin_family = AF_INET;
-		addr.sin_port = htons(8884);
-		addr.sin_addr.s_addr = inet_addr("47.93.103.232");
+		addr.sin_port = htons(HOST_PORT_ECHO2);
+		addr.sin_addr.s_addr = inet_addr(HOST_ADDR);
 		return send_linux_udp_data(&addr, data, len);
 		break;
 
@@ -67,11 +74,16 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 
 //thread ：
 
-void mqttthread(void *p)
+void msgthread(void *p)
 {
-	char topic[64];
-	snprintf(mqtt_deviceid, sizeof(mqtt_deviceid), "%s", p2psession->local_peername);
-	cloud_mqtt_thread((void *)MessageArrived_Fun);
+	char tmp[128];
+	for(;;)
+	{
+#define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
+		snprintf(tmp,64,MSGSTR,p2psession->local_peername,p2psession->local_peername);
+		__send_msg(tmp);
+		sleep(5);
+	}
 }
 
 void udp_recv_thread(void *p)
@@ -95,7 +107,7 @@ void session_timer_thread(void *p)
 int main(int argc, char **argv)
 {
 	int ret;
-	pthread_t mqttthreadid;
+	pthread_t msgthreadid;
 	pthread_t s1threadid;
 	pthread_t udpthread;
 
@@ -129,13 +141,15 @@ int main(int argc, char **argv)
 
 	pthread_mutex_init(&mutex_lock, NULL);
 
-	if ((pthread_create(&mqttthreadid, NULL, mqttthread, (void *)NULL)) == -1)
+	
+
+	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
 	{
 		printf("create error !\n");
 		return -1;
 	}
 
-	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
+	if ((pthread_create(&msgthreadid, NULL, msgthread, (void *)NULL)) == -1)
 	{
 		printf("create error !\n");
 		return -1;
