@@ -78,7 +78,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             case P2PTUN_STATUS_LISTEN:
             case P2PTUN_STATUS_LISTEN_HANDSHAKE:
 
-                if (get_sub_tim_sec(&session->getnettype_time) > 30)
+                if (1/*get_sub_tim_sec(&session->getnettype_time) > 30*/)
                 {
                     printf("重新获取网络类型\n");
                     p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE);
