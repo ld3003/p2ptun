@@ -21,6 +21,10 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
         {
             char *json;
             struct JSONDATA dat;
+
+            //当收到PING命令就认为客户端重启发起了链接，无条件将状态机恢复到初始状态
+            p2ptun_setstatus(session,P2PTUN_STATUS_LISTEN);
+
             snprintf(session->remote_peername, sizeof(session->remote_peername), "%s", indat.from);
             memset(&dat, 0x0, sizeof(dat));
             dat.cmd = P2PTUN_CMD_MSGPONG;
@@ -67,6 +71,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             //P2PTUN_CMD_MSGGETNTYPE 指令中包含远程和本地地址
             snprintf(session->remote_ipaddr, sizeof(session->remote_ipaddr), "%s", indat.addr);
             session->remote_port = indat.port;
+            printf("################## %s:%d\n", session->remote_ipaddr, session->remote_port);
             switch (session->cur_status)
             {
 
@@ -127,7 +132,17 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
     switch (session->cur_status)
     {
     case P2PTUN_STATUS_CONNECTED:
+    {
+        struct JSONDATA indat;
+        if (json2data(data, &indat) == 0)
+        {
+            if (indat.cmd == P2PTUN_CMD_UDP_HB)
+            {
+                p2ptun_get_current_time(&session->recvhb_time);
+            }
+        }
         break;
+    }
 
     case P2PTUN_STATUS_LISTEN_HANDSHAKE:
     {

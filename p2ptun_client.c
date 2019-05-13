@@ -82,6 +82,20 @@ static int p2ptun_send_msg_connected(struct P2PTUN_CONN_SESSION *session)
     free(json);
 }
 
+static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_UDP_HB;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    dat.port = session->local_port;
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
 int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
     struct JSONDATA indat;
@@ -232,6 +246,15 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
 
     case P2PTUN_STATUS_CONNECTED:
     {
+        struct JSONDATA indat;
+        if (json2data(data, &indat) == 0)
+        {
+            if (indat.cmd == P2PTUN_CMD_UDP_HB)
+            {
+                p2ptun_get_current_time(&session->recvhb_time);
+            }
+        }
+        
         break;
     }
 
@@ -346,6 +369,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
         }
+        break;
     }
 
     case P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED:
@@ -359,6 +383,15 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         }
     }
 
+    case P2PTUN_STATUS_CONNECTED:
+    {
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        if ((cmp_sec % 5) == 0)
+        {
+            p2ptun_send_udp_hb(session);
+        }
+        break;
+    }
     default:
         break;
     }

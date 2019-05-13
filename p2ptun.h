@@ -48,6 +48,7 @@ extern "C"
 
 		struct P2PTUN_TIME status_time;
 		struct P2PTUN_TIME getnettype_time;
+		struct P2PTUN_TIME recvhb_time;
 
 		OUTPUT_MSG out_msg;
 		OUTPUT_DAT out_dat;

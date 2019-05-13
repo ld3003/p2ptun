@@ -80,6 +80,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
 		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
+		//addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		printf("send to remote_ipaddr : %s:%d\n", p2psession->remote_ipaddr,p2psession->remote_port);
 		return send_linux_udp_data(&addr, data, len);
 		break;
