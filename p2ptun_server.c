@@ -21,7 +21,7 @@ static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     dat.port = session->local_port;
     json = data2json(&dat);
-    session->out_msg(json);
+    session->out_dat(json,strlen(json),2);
     free(json);
 }
 
