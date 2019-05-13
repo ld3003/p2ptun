@@ -11,22 +11,21 @@ struct P2PTUN_CONN_SESSION *p2psession;
 short udp_port;
 //callback:
 
-#define HOST_ADDR "47.94.103.232"
-#define HOST_PORT_MSG 39000
-#define HOST_PORT_ECHO1 39001
-#define HOST_PORT_ECHO2 39002
-
+#define HOST_ADDR "47.93.103.232"
+#define HOST_PORT_MSG 3900
+#define HOST_PORT_ECHO1 3901
+#define HOST_PORT_ECHO2 3902
 
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
-	printf("MSGRCV:%s\n",data);
-
 	pthread_mutex_lock(&mutex_lock);
-	if ((addr->sin_port == HOST_PORT_MSG) && (addr->sin_addr.s_addr == inet_addr(HOST_ADDR)))
+	if ((addr->sin_port == htons(HOST_PORT_MSG)) && (addr->sin_addr.s_addr == inet_addr(HOST_ADDR)))
 	{
-		printf("MSGRCV:%s\n",data);
-		p2ptun_input_msg(p2psession,data);
-	}else{
+		printf("MSGRCV:%s\n", data);
+		p2ptun_input_msg(p2psession, data);
+	}
+	else
+	{
 		p2ptun_input_data(p2psession, data, len);
 	}
 	pthread_mutex_unlock(&mutex_lock);
@@ -36,17 +35,18 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 void __send_msg(char *msg)
 {
 	struct sockaddr_in addr;
+	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(HOST_PORT_MSG);
 	addr.sin_addr.s_addr = inet_addr(HOST_ADDR);
-	printf("MSGSND:%s\n",msg);
+	printf("MSGSND:%s\n", msg);
 	return send_linux_udp_data(&addr, msg, strlen(msg));
-
 }
 
 int __senddata_func(unsigned char *data, int len, char pkgtype)
 {
 	struct sockaddr_in addr;
+	bzero(&addr, sizeof(addr));
 
 	switch (pkgtype)
 	{
@@ -77,10 +77,12 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 void msgthread(void *p)
 {
 	char tmp[128];
-	for(;;)
+	sleep(3);
+	for (;;)
 	{
+		
 #define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
-		snprintf(tmp,64,MSGSTR,p2psession->local_peername,p2psession->local_peername);
+		snprintf(tmp, 64, MSGSTR, p2psession->local_peername, p2psession->local_peername);
 		__send_msg(tmp);
 		sleep(5);
 	}
@@ -124,14 +126,14 @@ int main(int argc, char **argv)
 			printf("running in server\n");
 			p2psession->workmode = P2PTUN_WORKMODE_SERVER;
 			sprintf(p2psession->local_peername, "device_ser");
-			udp_port = 17788;
+			udp_port = 27788;
 			break;
 		case 'c':
 			printf("running in client\n");
 			p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 			sprintf(p2psession->remote_peername, "device_ser");
 			sprintf(p2psession->local_peername, "device_cli");
-			udp_port = 17789;
+			udp_port = 27789;
 			break;
 		default:
 			return -1;
@@ -140,8 +142,6 @@ int main(int argc, char **argv)
 	}
 
 	pthread_mutex_init(&mutex_lock, NULL);
-
-	
 
 	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
 	{

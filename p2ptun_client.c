@@ -22,6 +22,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
         {
             char *json;
             struct JSONDATA dat;
+            memset(&dat,0x0,sizeof(dat));
             dat.cmd = P2PTUN_CMD_MQTTPONG;
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -39,6 +40,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
                 char *json;
                 struct JSONDATA dat;
+                memset(&dat,0x0,sizeof(dat));
                 dat.cmd = P2PTUN_CMD_MQTTGETNTYPE;
                 snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                 snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -50,6 +52,16 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
             break;
 
         case P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE:
+
+            if (indat.cmd == P2PTUN_CMD_MQTTRRESPNTYPE)
+            {
+                session->remote_nettype = indat.ntype;
+                session->remote_port = indat.port;
+                snprintf(session->local_ipaddr,sizeof(session->local_ipaddr),"%s",indat.addr);
+
+
+            }
+
             break;
 
         default:
@@ -91,6 +103,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
                 char *json;
                 struct JSONDATA dat;
+                memset(&dat,0x0,sizeof(dat));
                 dat.cmd = P2PTUN_CMD_MQTTPING;
                 snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                 snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -114,6 +127,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
                 char *json;
                 struct JSONDATA dat;
+                memset(&dat,0x0,sizeof(dat));
                 dat.cmd = P2PTUN_CMD_UDPPING;
                 json = data2json(&dat);
                 session->out_dat(json, strlen(json), 1);
@@ -141,6 +155,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE);
         char *json;
         struct JSONDATA dat;
+        memset(&dat,0x0,sizeof(dat));
         dat.cmd = P2PTUN_CMD_UDPPING;
         json = data2json(&dat);
         session->out_dat(json, strlen(json), 0);
@@ -162,6 +177,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             char *json;
             struct JSONDATA dat;
+            memset(&dat,0x0,sizeof(dat));
             dat.cmd = P2PTUN_CMD_MQTTPING;
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 0);
@@ -191,6 +207,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             char *json;
             struct JSONDATA dat;
+            memset(&dat,0x0,sizeof(dat));
             dat.cmd = P2PTUN_CMD_UDPPING;
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 1);
@@ -225,6 +242,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             char *json;
             struct JSONDATA dat;
+            memset(&dat,0x0,sizeof(dat));
             dat.cmd = P2PTUN_CMD_MQTTPING;
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -260,6 +278,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             char *json;
             struct JSONDATA dat;
+            memset(&dat,0x0,sizeof(dat));
             dat.cmd = P2PTUN_CMD_MQTTGETNTYPE;
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
