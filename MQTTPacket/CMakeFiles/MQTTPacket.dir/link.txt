@@ -1,2 +1,0 @@
-/usr/bin/ar qc libMQTTPacket.a  CMakeFiles/MQTTPacket.dir/MQTTConnectClient.c.o CMakeFiles/MQTTPacket.dir/MQTTConnectServer.c.o CMakeFiles/MQTTPacket.dir/MQTTDeserializePublish.c.o CMakeFiles/MQTTPacket.dir/MQTTFormat.c.o CMakeFiles/MQTTPacket.dir/MQTTPacket.c.o CMakeFiles/MQTTPacket.dir/MQTTSerializePublish.c.o CMakeFiles/MQTTPacket.dir/MQTTSubscribeClient.c.o CMakeFiles/MQTTPacket.dir/MQTTSubscribeServer.c.o CMakeFiles/MQTTPacket.dir/MQTTUnsubscribeClient.c.o CMakeFiles/MQTTPacket.dir/MQTTUnsubscribeServer.c.o
-/usr/bin/ranlib libMQTTPacket.a

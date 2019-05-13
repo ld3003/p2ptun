@@ -17,12 +17,12 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
     if (json2data(msg, &indat) == 0)
     {
 
-        if (indat.cmd == P2PTUN_CMD_MQTTPING)
+        if (indat.cmd == P2PTUN_CMD_MSGPING)
         {
             char *json;
             struct JSONDATA dat;
             memset(&dat,0x0,sizeof(dat));
-            dat.cmd = P2PTUN_CMD_MQTTPONG;
+            dat.cmd = P2PTUN_CMD_MSGPONG;
             snprintf(session->remote_peername, sizeof(session->remote_peername), "%s", indat.from);
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -34,7 +34,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
         }
 
         //P2PTUN_CMD_MQTTGETNTYPE
-        if (indat.cmd == P2PTUN_CMD_MQTTGETNTYPE)
+        if (indat.cmd == P2PTUN_CMD_MSGGETNTYPE)
         {
             switch (session->cur_status)
             {
@@ -49,7 +49,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     char *json;
                     struct JSONDATA dat;
                     memset(&dat,0x0,sizeof(dat));
-                    dat.cmd = P2PTUN_CMD_MQTTPING;
+                    dat.cmd = P2PTUN_CMD_MSGPING;
                     json = data2json(&dat);
                     session->out_dat(json, strlen(json), 0);
                     free(json);
@@ -60,7 +60,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     char *json;
                     struct JSONDATA dat;
                     memset(&dat,0x0,sizeof(dat));
-                    dat.cmd = P2PTUN_CMD_MQTTRRESPNTYPE;
+                    dat.cmd = P2PTUN_CMD_MSGRRESPNTYPE;
                     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
                     dat.ntype = session->local_nettype;
@@ -79,7 +79,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
 
         case P2PTUN_STATUS_LISTEN:
         {
-            if (indat.cmd == P2PTUN_CMD_MQTTPING)
+            if (indat.cmd == P2PTUN_CMD_MSGPING)
                 p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE);
             break;
         }
@@ -122,7 +122,7 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 char *json;
                 struct JSONDATA dat;
                 memset(&dat,0x0,sizeof(dat));
-                dat.cmd = P2PTUN_CMD_MQTTRRESPNTYPE;
+                dat.cmd = P2PTUN_CMD_MSGRRESPNTYPE;
                 snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                 snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
                 dat.ntype = session->local_nettype;
@@ -149,7 +149,7 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 char *json;
                 struct JSONDATA dat;
                 memset(&dat,0x0,sizeof(dat));
-                dat.cmd = P2PTUN_CMD_MQTTPING;
+                dat.cmd = P2PTUN_CMD_MSGPING;
                 json = data2json(&dat);
                 session->out_dat(json, strlen(json), 0);
                 free(json);
