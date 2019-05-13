@@ -23,10 +23,10 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     json = data2json(&dat);
-    for(i=0;i<1;i++)
+    for (i = 0; i < 1; i++)
     {
         session->out_dat(json, strlen(json), 2);
-        usleep(1000*10);
+        usleep(1000 * 10);
     }
     free(json);
 
@@ -62,6 +62,20 @@ static int p2ptun_send_msg_getntype(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
+    dat.port = session->local_port;
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
+static int p2ptun_send_msg_connected(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_MSG_CONNECTED;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     dat.port = session->local_port;
     json = data2json(&dat);
     session->out_msg(json);
@@ -135,8 +149,6 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
 
     switch (session->cur_status)
     {
-    case P2PTUN_STATUS_CONNECTED:
-        break;
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
     {
         struct JSONDATA indat;
@@ -153,7 +165,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 {
                     session->local_nettype = 1;
                 }
-                printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
+                printf("当前网络类型:%d %s:%d\n", session->local_nettype, session->local_ipaddr, session->local_port);
 
                 p2ptun_get_current_time(&session->getnettype_time);
 
@@ -197,10 +209,33 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
             if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
             {
                 printf("打洞成功!!!!!!!!!!!!!!!!!!!!\n");
+                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED);
+                p2ptun_send_msg_connected(session);
             }
         }
         break;
     }
+
+    case P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED:
+    {
+        struct JSONDATA indat;
+        if (json2data(data, &indat) == 0)
+        {
+            if (indat.cmd == P2PTUN_CMD_MSG_RESPCONNECTED)
+            {
+                printf("确认连接成功!!!!!!!!!!!!!!!!!!!!\n");
+                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
+            }
+        }
+        break;
+    }
+
+    case P2PTUN_STATUS_CONNECTED:
+    {
+        break;
+    }
+
+    break;
 
     default:
         break;
@@ -229,39 +264,23 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE:
     {
         int cmp_sec = get_sub_tim_sec(&session->status_time);
-        switch (cmp_sec)
-        {
-        case 0:
-            break;
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
+
+        if (cmp_sec <= 5)
         {
             p2ptun_send_msgping(session);
-            break;
         }
-        default:
+        else
+        {
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
-            //time out
-            break;
         }
+
         break;
     }
 
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
     {
         int cmp_sec = get_sub_tim_sec(&session->status_time);
-        switch (cmp_sec)
-        {
-        case 0:
-            break;
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
+        if (cmp_sec <= 5)
         {
             char *json;
             struct JSONDATA dat;
@@ -270,13 +289,12 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 1);
             free(json);
-            break;
         }
-        default:
+        else
+        {
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
-            //time out
-            break;
         }
+
         break;
     }
 
@@ -288,23 +306,13 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         */
 
         int cmp_sec = get_sub_tim_sec(&session->status_time);
-        switch (cmp_sec)
-        {
-        case 0:
-        case 2:
-        case 4:
-            break;
-        case 1:
-        case 3:
-        case 5:
+        if (cmp_sec <= 5)
         {
             p2ptun_send_msgping(session);
-            break;
         }
-        default:
+        else
+        {
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
-            //time out
-            break;
         }
 
         break;
@@ -315,32 +323,40 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
             等待 GET NETTYPE 命令
             间隔500ms发一次 NETTYPE，5秒钟认为超时，应该写在红定义
         */
+
         int cmp_sec = get_sub_tim_sec(&session->status_time);
-        switch (cmp_sec)
-        {
-        case 0:
-        case 2:
-        case 4:
-            break;
-        case 1:
-        case 3:
-        case 5:
+        if (cmp_sec <= 5)
         {
             p2ptun_send_msg_getntype(session);
-            break;
         }
-        default:
+        else
+        {
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
-            //time out
-            break;
         }
+
         break;
     }
 
     case P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO:
     {
-        //p2ptun_setstatus(session,P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO);
-        p2ptun_send_dadong_pkg(session);
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        if (cmp_sec <= 5)
+            p2ptun_send_dadong_pkg(session);
+        else
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+        }
+    }
+
+    case P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED:
+    {
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        if (cmp_sec <= 5)
+            p2ptun_send_msg_connected(session);
+        else
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+        }
     }
 
     default:

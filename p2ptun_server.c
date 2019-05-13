@@ -16,7 +16,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
     struct JSONDATA indat;
     if (json2data(msg, &indat) == 0)
     {
-
+        //根据消息命令来进行相应处理
         if (indat.cmd == P2PTUN_CMD_MSGPING)
         {
             char *json;
@@ -30,7 +30,6 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             session->out_msg(json);
             free(json);
 
-            
             session->remote_port = indat.port;
         }
 
@@ -46,6 +45,20 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 2);
             free(json);
+        }
+
+        if (indat.cmd == P2PTUN_CMD_MSG_CONNECTED)
+        {
+            char *json;
+            struct JSONDATA dat;
+            memset(&dat, 0x0, sizeof(dat));
+            dat.cmd = P2PTUN_CMD_MSG_RESPCONNECTED;
+            snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+            snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+            json = data2json(&dat);
+            session->out_dat(json, strlen(json), 2);
+            free(json);
+            p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
         }
 
         //P2PTUN_CMD_MQTTGETNTYPE
@@ -92,6 +105,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             }
         }
 
+        //根据当前状态来执行操作
         switch (session->cur_status)
         {
 
@@ -129,7 +143,7 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                 snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
                 json = data2json(&dat);
-                session->out_dat(json,strlen(json),2);
+                session->out_dat(json, strlen(json), 2);
                 free(json);
             }
         }
@@ -153,7 +167,8 @@ int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 {
                     session->local_nettype = 1;
                 }
-                printf("RECV LOCAL NETTYPE %d\n", session->local_nettype);
+
+                printf("当前网络类型:%d %s:%d\n", session->local_nettype, session->local_ipaddr, session->local_port);
 
                 p2ptun_get_current_time(&session->getnettype_time);
 
@@ -210,6 +225,18 @@ void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session)
     {
     case P2PTUN_STATUS_INIT:
         p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
+        break;
+    case P2PTUN_STATUS_LISTEN_HANDSHAKE:
+    {
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        if (cmp_sec > P2P_SESSION_TIMEOUT)
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
+        }
+        break;
+    }
+
+    case P2PTUN_STATUS_CONNECTED:
         break;
     }
 }
