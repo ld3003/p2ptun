@@ -11,6 +11,20 @@
 #include <string.h>
 #include <unistd.h>
 
+static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_UDP_HB;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    dat.port = session->local_port;
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
 int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
     struct JSONDATA indat;
@@ -23,7 +37,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             struct JSONDATA dat;
 
             //当收到PING命令就认为客户端重启发起了链接，无条件将状态机恢复到初始状态
-            p2ptun_setstatus(session,P2PTUN_STATUS_LISTEN);
+            p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN);
 
             snprintf(session->remote_peername, sizeof(session->remote_peername), "%s", indat.from);
             memset(&dat, 0x0, sizeof(dat));
@@ -62,6 +76,8 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 2);
             free(json);
+
+            p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
             p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
         }
 
@@ -79,7 +95,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             case P2PTUN_STATUS_LISTEN_HANDSHAKE:
 
                 //关闭获取网络类型的超时判断
-                if (1/*get_sub_tim_sec(&session->getnettype_time) > 30*/)
+                if (1 /*get_sub_tim_sec(&session->getnettype_time) > 30*/)
                 {
                     printf("重新获取网络类型\n");
                     p2ptun_setstatus(session, P2PTUN_STATUS_LISTEN_HANDSHAKE_WAIT_GET_NETTYPE);
@@ -253,6 +269,20 @@ void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session)
     }
 
     case P2PTUN_STATUS_CONNECTED:
+    {
+        int cmp_sec2 = get_sub_tim_sec(&session->recvhb_time);
+        int cmp_sec = get_sub_tim_sec(&session->status_time);
+        if ((cmp_sec % 5) == 0)
+        {
+            p2ptun_send_udp_hb(session);
+        }
+
+        if (cmp_sec2 > 30)
+        {
+            printf("超时了，断开链接\n");
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+        }
         break;
+    }
     }
 }

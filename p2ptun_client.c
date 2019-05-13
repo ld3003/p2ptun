@@ -238,6 +238,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
             if (indat.cmd == P2PTUN_CMD_MSG_RESPCONNECTED)
             {
                 printf("确认连接成功!!!!!!!!!!!!!!!!!!!!\n");
+                p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
             }
         }
@@ -254,7 +255,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 p2ptun_get_current_time(&session->recvhb_time);
             }
         }
-        
+
         break;
     }
 
@@ -385,10 +386,17 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
 
     case P2PTUN_STATUS_CONNECTED:
     {
+        int cmp_sec2 = get_sub_tim_sec(&session->recvhb_time);
         int cmp_sec = get_sub_tim_sec(&session->status_time);
-        if ((cmp_sec % 5) == 0)
+        if ((cmp_sec % P2PTUN_PING_TIME) == 0)
         {
             p2ptun_send_udp_hb(session);
+        }
+
+        if (cmp_sec2 > (P2PTUN_PING_TIME*3))
+        {
+            printf("超时了，断开链接\n");
+            p2ptun_setstatus(session,P2PTUN_STATUS_DISCONNECT);
         }
         break;
     }

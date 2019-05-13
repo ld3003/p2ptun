@@ -2,6 +2,7 @@
 #define __p2ptun_common_h__
 
 #define P2P_SESSION_TIMEOUT 20
+#define P2PTUN_PING_TIME   2
 
 typedef char p2ptun_int8;
 typedef unsigned char p2ptun_uint8;

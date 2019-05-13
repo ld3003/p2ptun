@@ -41,7 +41,10 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 }
 int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-    
+    if (session->cur_status == P2PTUN_CMD_MSG_CONNECTED)
+    {
+        
+    }
     return 0;
 }
 
