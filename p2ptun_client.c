@@ -14,6 +14,7 @@
 
 static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
 {
+    int i = 0;
     //向对方UDP端口发送 UDP_TEST
     char *json;
     struct JSONDATA dat;
@@ -22,7 +23,11 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     json = data2json(&dat);
-    session->out_dat(json, strlen(json), 2);
+    for(i=0;i<1;i++)
+    {
+        session->out_dat(json, strlen(json), 2);
+        usleep(1000*10);
+    }
     free(json);
 
     //通过MSG通知对方向本地发送 UDP_TEST
@@ -191,7 +196,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
         {
             if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
             {
-                printf("大洞成功!!!!!!!!!!!!!!!!!!!!\n");
+                printf("打洞成功!!!!!!!!!!!!!!!!!!!!\n");
             }
         }
         break;

@@ -6,13 +6,13 @@ static unsigned char udp_recv_buffer[2048];
 int send_linux_udp_data(struct sockaddr_in *addr, unsigned char *data, int len)
 {
     int n;
-    printf("send to addr %d\n",addr->sin_port);
+    //printf("send to addr %d\n",addr->sin_port);
     n = sendto(linux_udp_sock, data, len, 0, addr, sizeof(*addr));
     if (n < 0)
     {
         perror("sendto");
     }else{
-        printf("send n %d \n",n)
+        //printf("send n %d \n",n)
 ;    }
 
     return n;

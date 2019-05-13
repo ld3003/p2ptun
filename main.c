@@ -79,7 +79,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 	case 2:
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
-		addr.sin_addr.s_addr = inet_addr(/*p2psession->remote_ipaddr*/"49.72.236.88");
+		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
 		printf("send to remote_ipaddr : %s:%d\n", p2psession->remote_ipaddr,p2psession->remote_port);
 		return send_linux_udp_data(&addr, data, len);
 		break;
@@ -140,14 +140,14 @@ int main(int argc, char **argv)
 			printf("running in server\n");
 			p2psession->workmode = P2PTUN_WORKMODE_SERVER;
 			sprintf(p2psession->local_peername, "device_ser");
-			udp_port = 27788;
+			udp_port = 10088;
 			break;
 		case 'c':
 			printf("running in client\n");
 			p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 			sprintf(p2psession->remote_peername, "device_ser");
 			sprintf(p2psession->local_peername, "device_cli");
-			udp_port = 27789;
+			udp_port = 10099;
 			break;
 		default:
 			return -1;
