@@ -12,6 +12,57 @@
 #include <string.h>
 #include <unistd.h>
 
+static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
+{
+    //向对方UDP端口发送 UDP_TEST
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_UDP_TEST;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    json = data2json(&dat);
+    session->out_dat(json, strlen(json), 2);
+    free(json);
+
+    //通过MSG通知对方向本地发送 UDP_TEST
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_MSG_REQUESTUDPTEST;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
+static int p2ptun_send_msgping(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_MSGPING;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
+static int p2ptun_send_msg_getntype(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_MSGGETNTYPE;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
+    dat.port = session->local_port;
+    json = data2json(&dat);
+    session->out_msg(json);
+    free(json);
+}
+
 int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
     struct JSONDATA indat;
@@ -22,7 +73,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
         {
             char *json;
             struct JSONDATA dat;
-            memset(&dat,0x0,sizeof(dat));
+            memset(&dat, 0x0, sizeof(dat));
             dat.cmd = P2PTUN_CMD_MSGPONG;
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
@@ -38,15 +89,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
             if (indat.cmd == P2PTUN_CMD_MSGPONG)
             {
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
-                char *json;
-                struct JSONDATA dat;
-                memset(&dat,0x0,sizeof(dat));
-                dat.cmd = P2PTUN_CMD_MSGGETNTYPE;
-                snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
-                snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
-                json = data2json(&dat);
-                session->out_msg(json);
-                free(json);
+                p2ptun_send_msg_getntype(session);
                 //
             }
             break;
@@ -55,11 +98,19 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 
             if (indat.cmd == P2PTUN_CMD_MSGRRESPNTYPE)
             {
+                //保存远程IP地址信息
                 session->remote_nettype = indat.ntype;
                 session->remote_port = indat.port;
-                snprintf(session->local_ipaddr,sizeof(session->local_ipaddr),"%s",indat.addr);
+                snprintf(session->remote_ipaddr, sizeof(session->remote_ipaddr), "%s", indat.addr);
 
+                if ((session->local_nettype == 0) && (session->remote_nettype == 0))
+                {
 
+                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO);
+                    p2ptun_send_dadong_pkg(session);
+
+                    printf("均为对称NAT\n");
+                }
             }
 
             break;
@@ -75,11 +126,12 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
 
+    printf("DEBUG INPUT DATA MSG %s data\n");
+
     switch (session->cur_status)
     {
     case P2PTUN_STATUS_CONNECTED:
         break;
-
     case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
     {
         struct JSONDATA indat;
@@ -101,15 +153,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 p2ptun_get_current_time(&session->getnettype_time);
 
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
-                char *json;
-                struct JSONDATA dat;
-                memset(&dat,0x0,sizeof(dat));
-                dat.cmd = P2PTUN_CMD_MSGPING;
-                snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
-                snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
-                json = data2json(&dat);
-                session->out_msg(json);
-                free(json);
+                p2ptun_send_msgping(session);
             }
         }
         break;
@@ -127,7 +171,7 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
                 printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
                 char *json;
                 struct JSONDATA dat;
-                memset(&dat,0x0,sizeof(dat));
+                memset(&dat, 0x0, sizeof(dat));
                 dat.cmd = P2PTUN_CMD_UDPPING;
                 json = data2json(&dat);
                 session->out_dat(json, strlen(json), 1);
@@ -135,6 +179,21 @@ int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char 
             }
         }
 
+        //P2PTUN_CMD_UDP_RESPTEST
+
+        break;
+    }
+
+    case P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO:
+    {
+        struct JSONDATA indat;
+        if (json2data(data, &indat) == 0)
+        {
+            if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
+            {
+                printf("大洞成功!!!!!!!!!!!!!!!!!!!!\n");
+            }
+        }
         break;
     }
 
@@ -155,7 +214,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE);
         char *json;
         struct JSONDATA dat;
-        memset(&dat,0x0,sizeof(dat));
+        memset(&dat, 0x0, sizeof(dat));
         dat.cmd = P2PTUN_CMD_UDPPING;
         json = data2json(&dat);
         session->out_dat(json, strlen(json), 0);
@@ -175,13 +234,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         case 4:
         case 5:
         {
-            char *json;
-            struct JSONDATA dat;
-            memset(&dat,0x0,sizeof(dat));
-            dat.cmd = P2PTUN_CMD_MSGPING;
-            json = data2json(&dat);
-            session->out_dat(json, strlen(json), 0);
-            free(json);
+            p2ptun_send_msgping(session);
             break;
         }
         default:
@@ -207,7 +260,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             char *json;
             struct JSONDATA dat;
-            memset(&dat,0x0,sizeof(dat));
+            memset(&dat, 0x0, sizeof(dat));
             dat.cmd = P2PTUN_CMD_UDPPING;
             json = data2json(&dat);
             session->out_dat(json, strlen(json), 1);
@@ -240,15 +293,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         case 3:
         case 5:
         {
-            char *json;
-            struct JSONDATA dat;
-            memset(&dat,0x0,sizeof(dat));
-            dat.cmd = P2PTUN_CMD_MSGPING;
-            snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
-            snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
-            json = data2json(&dat);
-            session->out_msg(json);
-            free(json);
+            p2ptun_send_msgping(session);
             break;
         }
         default:
@@ -276,15 +321,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         case 3:
         case 5:
         {
-            char *json;
-            struct JSONDATA dat;
-            memset(&dat,0x0,sizeof(dat));
-            dat.cmd = P2PTUN_CMD_MSGGETNTYPE;
-            snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
-            snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
-            json = data2json(&dat);
-            session->out_msg(json);
-            free(json);
+            p2ptun_send_msg_getntype(session);
             break;
         }
         default:
@@ -293,6 +330,12 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
             break;
         }
         break;
+    }
+
+    case P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO:
+    {
+        //p2ptun_setstatus(session,P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO);
+        p2ptun_send_dadong_pkg(session);
     }
 
     default:

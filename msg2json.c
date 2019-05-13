@@ -6,7 +6,7 @@ int json2data(char *json, struct JSONDATA *dat)
     cJSON *pSub;
     cJSON *pJson;
 
-    printf("JONS:%s\n", json);
+    //printf("JONS:%s\n", json);
     if (NULL == json)
     {
         printf("err json\n");

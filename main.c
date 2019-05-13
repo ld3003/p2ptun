@@ -4,6 +4,7 @@
 
 #include "p2ptun.h"
 #include "cJSON.h"
+#include "msg2json.h"
 #include "linux_udp.h"
 
 pthread_mutex_t mutex_lock;
@@ -12,16 +13,28 @@ short udp_port;
 //callback:
 
 #define HOST_ADDR "47.93.103.232"
-#define HOST_PORT_MSG 3900
-#define HOST_PORT_ECHO1 3901
-#define HOST_PORT_ECHO2 3902
+#define HOST_PORT_MSG 29001
+#define HOST_PORT_ECHO1 HOST_PORT_MSG+1
+#define HOST_PORT_ECHO2 HOST_PORT_MSG+2
 
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
 	pthread_mutex_lock(&mutex_lock);
 	if ((addr->sin_port == htons(HOST_PORT_MSG)) && (addr->sin_addr.s_addr == inet_addr(HOST_ADDR)))
 	{
-		printf("MSGRCV:%s\n", data);
+		struct JSONDATA indat;
+		if (json2data(data, &indat) == 0)
+		{
+			if(strstr(indat.from,indat.to) == 0)
+			{
+
+			}
+			else{
+				printf("MSGRCV:%s\n", data);
+			}
+			
+		}
+		
 		p2ptun_input_msg(p2psession, data);
 	}
 	else
@@ -63,10 +76,11 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		return send_linux_udp_data(&addr, data, len);
 		break;
 
-	case 3:
+	case 2:
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
-		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
+		addr.sin_addr.s_addr = inet_addr(/*p2psession->remote_ipaddr*/"49.72.236.88");
+		printf("send to remote_ipaddr : %s:%d\n", p2psession->remote_ipaddr,p2psession->remote_port);
 		return send_linux_udp_data(&addr, data, len);
 		break;
 	}
@@ -80,7 +94,7 @@ void msgthread(void *p)
 	sleep(3);
 	for (;;)
 	{
-		
+
 #define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
 		snprintf(tmp, 64, MSGSTR, p2psession->local_peername, p2psession->local_peername);
 		__send_msg(tmp);
