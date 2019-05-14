@@ -53,6 +53,8 @@ extern "C"
 		struct P2PTUN_TIME reg_time;
 
 		OUTPUT_DAT out_dat;
+
+		//底层收到用户层的数据后回调此函数，应用层需要指定回调函数做接收数据的相应处理
 		OUTPUT_P2PDAT out_p2pdat;
 	};
 
@@ -63,9 +65,11 @@ extern "C"
 
 	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);
 	int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
-	int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
 	void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session);
 	void p2ptun_setstatus(struct P2PTUN_CONN_SESSION *session, unsigned char status);
+
+	//应用层如果需要发送数据到对方调用这个函数
+	int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
 
 #ifdef __cplusplus
 };

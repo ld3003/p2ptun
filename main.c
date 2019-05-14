@@ -178,6 +178,7 @@ int main(int argc, char **argv)
 		char *tmp = malloc(1024);
 		p2ptun_input_p2pdata(p2psession, tmp, 1024);
 		free(tmp);
+		sleep(1);
 	}
 	return 0;
 }

@@ -262,24 +262,6 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
     return 0;
 }
 
-int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
-{
-
-    if (length > 1)
-    {
-        switch (data[0])
-        {
-        case '{':
-            p2ptun_input_msg(session, data);
-            break;
-        case 'D':
-            session->out_p2pdat(data, length);
-            break;
-        }
-    }
-    return 0;
-}
-
 void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
 {
     switch (session->cur_status)

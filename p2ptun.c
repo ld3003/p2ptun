@@ -60,15 +60,20 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
 
 int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-    switch (session->workmode)
+
+    if (length > 1)
     {
-    case P2PTUN_WORKMODE_CLIENT:
-        p2ptun_input_data_client(session, data, length);
-        break;
-    case P2PTUN_WORKMODE_SERVER:
-        p2ptun_input_data_server(session, data, length);
-        break;
+        switch (data[0])
+        {
+        case '{':
+            p2ptun_input_msg(session, data);
+            break;
+        case 'D':
+            session->out_p2pdat(data, length);
+            break;
+        }
     }
+
 }
 
 void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
@@ -95,7 +100,7 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
         p2ptun_get_current_time(&session->reg_time);
     }
 
-    p2ptun_input_p2pdata(session,"test",4);
+    p2ptun_input_p2pdata(session, "test", 4);
     //
 }
 
