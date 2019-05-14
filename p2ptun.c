@@ -32,10 +32,10 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
     switch (session->workmode)
     {
     case P2PTUN_WORKMODE_CLIENT:
-        return p2ptun_input_msg_client(session,msg);
+        return p2ptun_input_msg_client(session, msg);
         break;
     case P2PTUN_WORKMODE_SERVER:
-        return p2ptun_input_msg_server(session,msg);
+        return p2ptun_input_msg_server(session, msg);
         break;
     }
 }
@@ -43,17 +43,16 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
 {
     if (session->cur_status == P2PTUN_CMD_MSG_CONNECTED)
     {
-        unsigned char *_tmp = malloc(length+1);
-        if (_tmp>0)
+        unsigned char *_tmp = malloc(length + 1);
+        if (_tmp > 0)
         {
             _tmp[0] = 'D';
-            memcpy(_tmp+1,data,length);
+            memcpy(_tmp + 1, data, length);
 
-            session->out_dat(_tmp,length+1,2);
+            session->out_dat(_tmp, length + 1, P2PTUN_UDPPKG_TYPE_P2PRAWDATA);
 
             free(_tmp);
         }
-        
     }
     return 0;
 }
@@ -63,17 +62,20 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
     switch (session->workmode)
     {
     case P2PTUN_WORKMODE_CLIENT:
-        p2ptun_input_data_client(session,data,length);
+        p2ptun_input_data_client(session, data, length);
         break;
     case P2PTUN_WORKMODE_SERVER:
-        p2ptun_input_data_server(session,data,length);
+        p2ptun_input_data_server(session, data, length);
         break;
     }
 }
 
 void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
 {
-    
+
+    char tmp[128];
+    int cmp_sec = get_sub_tim_sec(&session->reg_time);
+
     if (session->workmode == P2PTUN_WORKMODE_CLIENT)
     {
         p2ptun_client_timer_client(session);
@@ -81,6 +83,15 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
     else
     {
         p2ptun_client_timer_server(session);
+    }
+
+    //间隔5秒发送注册包
+    if (cmp_sec > 5)
+    {
+#define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
+        snprintf(tmp, 64, MSGSTR, session->local_peername, session->local_peername);
+        session->out_dat(tmp, strlen(tmp), P2PTUN_UDPPKG_TYPE_RELAYMSG);
+        p2ptun_get_current_time(&session->reg_time);
     }
 
     //

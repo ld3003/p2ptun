@@ -8,7 +8,6 @@ extern "C"
 {
 #endif
 
-	typedef int (*OUTPUT_MSG)(char *msg);
 	typedef int (*OUTPUT_DAT)(unsigned char *data, int length , char pkg_type);
 	typedef int (*OUTPUT_P2PDAT)(unsigned char *data, int length);
 
@@ -51,8 +50,8 @@ extern "C"
 		struct P2PTUN_TIME status_time;
 		struct P2PTUN_TIME getnettype_time;
 		struct P2PTUN_TIME recvhb_time;
+		struct P2PTUN_TIME reg_time;
 
-		OUTPUT_MSG out_msg;
 		OUTPUT_DAT out_dat;
 		OUTPUT_P2PDAT out_p2pdat;
 	};
