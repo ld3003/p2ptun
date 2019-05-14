@@ -24,6 +24,7 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
 
 int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 {
+    free(session);
     return 0;
 }
 
@@ -41,7 +42,7 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 }
 int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-    if (session->cur_status == P2PTUN_CMD_MSG_CONNECTED)
+    if (session->cur_status == P2PTUN_STATUS_CONNECTED)
     {
         unsigned char *_tmp = malloc(length + 1);
         if (_tmp > 0)
@@ -94,6 +95,7 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
         p2ptun_get_current_time(&session->reg_time);
     }
 
+    p2ptun_input_p2pdata(session,"test",4);
     //
 }
 

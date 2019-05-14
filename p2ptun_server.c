@@ -45,7 +45,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
             json = data2json(&dat);
-            session->out_dat(json,strlen(json),P2PTUN_UDPPKG_TYPE_RELAYMSG);
+            session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
             free(json);
 
             session->remote_port = indat.port;
@@ -79,6 +79,14 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
 
             p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
             p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
+
+            printf("\n\n");
+            printf("--------------------------------------------------\n");
+            printf("         NEW CONNECT !                        \n");
+            printf("[REMOTE] %s - %s:%d\n", session->remote_peername, session->remote_ipaddr, session->remote_port);
+            printf("[LOCAL ] %s - %s:%d\n", session->local_peername, session->local_ipaddr, session->local_port);
+            printf("+--------------------------------------------------\n");
+            printf("\n\n");
         }
 
         //P2PTUN_CMD_MQTTGETNTYPE
@@ -186,7 +194,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     dat.port = session->local_port;
                     snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
                     json = data2json(&dat);
-                    session->out_dat(json,strlen(json),P2PTUN_UDPPKG_TYPE_PING2);
+                    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
                     free(json);
                 }
             }
@@ -228,17 +236,16 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
 int p2ptun_input_data_server(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
     if (length > 1)
-	{
-		switch(data[0])
-		{
-			case '{':
-			p2ptun_input_msg(session, data);
-			break;
-			case 'D':
-			session->out_p2pdat(data,length);
-			break;
-		}
-	
+    {
+        switch (data[0])
+        {
+        case '{':
+            p2ptun_input_msg(session, data);
+            break;
+        case 'D':
+            session->out_p2pdat(data, length);
+            break;
+        }
     }
     return 0;
 }

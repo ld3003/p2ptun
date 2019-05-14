@@ -7,10 +7,16 @@
 #include "msg2json.h"
 #include "linux_udp.h"
 
+#define USE_LOCAL_TESTING 1
+
+
 pthread_mutex_t mutex_lock;
 struct P2PTUN_CONN_SESSION *p2psession;
 short udp_port;
 //callback:
+
+#define SERVER_LOCAL_BIND_PORT 10087
+#define CLIENT_LOCAL_BIND_PORT 10078
 
 #define P2PTUNSRV_ADDR "47.93.103.232"
 #define P2PTUNSRV_PORT_MSG 29001
@@ -70,11 +76,20 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
 		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
+
+#if (USE_LOCAL_TESTING == 1)
+		addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+		if(p2psession->workmode == P2PTUN_WORKMODE_CLIENT)
+		{
+			addr.sin_port = htons(SERVER_LOCAL_BIND_PORT);
+		}else{
+			addr.sin_port = htons(CLIENT_LOCAL_BIND_PORT);
+		}
+#endif
 		//addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-		printf("send to remote_ipaddr : %s:%d\n", p2psession->remote_ipaddr, p2psession->remote_port);
+		printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
 		return send_linux_udp_data(&addr, data, len);
 		break;
-
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //UDP MESSAGE 包 ，主要用于 服务器转发
 
@@ -128,14 +143,14 @@ int main(int argc, char **argv)
 			printf("running in server\n");
 			p2psession->workmode = P2PTUN_WORKMODE_SERVER;
 			sprintf(p2psession->local_peername, "device_ser");
-			udp_port = 10088;
+			udp_port = SERVER_LOCAL_BIND_PORT;
 			break;
 		case 'c':
 			printf("running in client\n");
 			p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 			sprintf(p2psession->remote_peername, "device_ser");
 			sprintf(p2psession->local_peername, "device_cli");
-			udp_port = 10099;
+			udp_port = CLIENT_LOCAL_BIND_PORT;
 			break;
 		default:
 			return -1;
@@ -160,7 +175,9 @@ int main(int argc, char **argv)
 
 	for (;;)
 	{
-		sleep(1);
+		char *tmp = malloc(1024);
+		p2ptun_input_p2pdata(p2psession, tmp, 1024);
+		free(tmp);
 	}
 	return 0;
 }
