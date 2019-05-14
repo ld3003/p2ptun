@@ -9,13 +9,15 @@ set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 project(p2ptun)
 
-include_directories(./ ./JSON)
+include_directories(./ ./JSON ./KCP)
 
 # Add block directories
 add_subdirectory(JSON)
-aux_source_directory(. DIR_MEDIAC_SRCS)
+add_subdirectory(KCP)
+aux_source_directory(. DIR_P2PTUN_SRCS)
 
-add_executable(p2ptun ${DIR_MEDIAC_SRCS})#上述方法有问题，这种方法才有效
+add_executable(p2ptun ${DIR_P2PTUN_SRCS})#上述方法有问题，这种方法才有效
 target_link_libraries(p2ptun JSON)
+target_link_libraries(p2ptun KCP)
 target_link_libraries(p2ptun -lpthread)
 target_link_libraries(p2ptun -lm)
