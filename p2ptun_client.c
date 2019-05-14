@@ -92,7 +92,7 @@ static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     dat.port = session->local_port;
     json = data2json(&dat);
-    session->out_dat(json,strlen(json),2);
+    session->out_dat(json, strlen(json), 2);
     free(json);
 }
 
@@ -118,6 +118,105 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 
         switch (session->cur_status)
         {
+
+        case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
+        {
+            struct JSONDATA indat;
+            if (json2data(msg, &indat) == 0)
+            {
+                if (indat.cmd == P2PTUN_CMD_UDPPONG)
+                {
+                    snprintf(session->local_ipaddr, 32, "%s", indat.addr);
+                    if (session->local_port == indat.port)
+                    {
+                        session->local_nettype = 0;
+                    }
+                    else
+                    {
+                        session->local_nettype = 1;
+                    }
+                    printf("当前网络类型:%d %s:%d\n", session->local_nettype, session->local_ipaddr, session->local_port);
+
+                    p2ptun_get_current_time(&session->getnettype_time);
+
+                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
+                    p2ptun_send_msgping(session);
+                }
+            }
+            break;
+        }
+        case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE: //P2PTUN_STATUS_CONNECTING_WAIT_UDPTUN:
+        {
+            struct JSONDATA indat;
+            if (json2data(msg, &indat) == 0)
+            {
+                if (indat.cmd == P2PTUN_CMD_UDPPONG)
+                {
+                    snprintf(session->local_ipaddr, 32, "%s", indat.addr);
+                    session->local_port = indat.port;
+                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1);
+                    printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
+                    char *json;
+                    struct JSONDATA dat;
+                    memset(&dat, 0x0, sizeof(dat));
+                    dat.cmd = P2PTUN_CMD_UDPPING;
+                    json = data2json(&dat);
+                    session->out_dat(json, strlen(json), 1);
+                    free(json);
+                }
+            }
+
+            //P2PTUN_CMD_UDP_RESPTEST
+
+            break;
+        }
+
+        case P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO:
+        {
+            struct JSONDATA indat;
+            if (json2data(msg, &indat) == 0)
+            {
+                if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
+                {
+                    printf("打洞成功!!!!!!!!!!!!!!!!!!!!\n");
+                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED);
+                    p2ptun_send_msg_connected(session);
+                }
+            }
+            break;
+        }
+
+        case P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED:
+        {
+            struct JSONDATA indat;
+            if (json2data(msg, &indat) == 0)
+            {
+                if (indat.cmd == P2PTUN_CMD_MSG_RESPCONNECTED)
+                {
+                    printf("确认连接成功!!!!!!!!!!!!!!!!!!!!\n");
+                    p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
+                    p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
+                }
+            }
+            break;
+        }
+
+        case P2PTUN_STATUS_CONNECTED:
+        {
+            struct JSONDATA indat;
+            if (json2data(msg, &indat) == 0)
+            {
+                if (indat.cmd == P2PTUN_CMD_UDP_HB)
+                {
+                    p2ptun_get_current_time(&session->recvhb_time);
+                }
+            }
+
+            break;
+        }
+
+            //-----------------------------------------------------------------
+
         case P2PTUN_STATUS_CONNECTING_WAIT_PONG:
             if (indat.cmd == P2PTUN_CMD_MSGPONG)
             {
@@ -159,111 +258,19 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 int p2ptun_input_data_client(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
 
-    printf("DEBUG INPUT DATA MSG %s data\n");
-
-    switch (session->cur_status)
+    if (length > 1)
     {
-    case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1:
-    {
-        struct JSONDATA indat;
-        if (json2data(data, &indat) == 0)
+        switch (data[0])
         {
-            if (indat.cmd == P2PTUN_CMD_UDPPONG)
-            {
-                snprintf(session->local_ipaddr, 32, "%s", indat.addr);
-                if (session->local_port == indat.port)
-                {
-                    session->local_nettype = 0;
-                }
-                else
-                {
-                    session->local_nettype = 1;
-                }
-                printf("当前网络类型:%d %s:%d\n", session->local_nettype, session->local_ipaddr, session->local_port);
-
-                p2ptun_get_current_time(&session->getnettype_time);
-
-                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_PONG);
-                p2ptun_send_msgping(session);
-            }
+        case '{':
+            p2ptun_input_msg(session, data);
+            break;
+        case 'D':
+            session->out_p2pdat(data, length);
+            break;
         }
-        break;
     }
-    case P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE: //P2PTUN_STATUS_CONNECTING_WAIT_UDPTUN:
-    {
-        struct JSONDATA indat;
-        if (json2data(data, &indat) == 0)
-        {
-            if (indat.cmd == P2PTUN_CMD_UDPPONG)
-            {
-                snprintf(session->local_ipaddr, 32, "%s", indat.addr);
-                session->local_port = indat.port;
-                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1);
-                printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
-                char *json;
-                struct JSONDATA dat;
-                memset(&dat, 0x0, sizeof(dat));
-                dat.cmd = P2PTUN_CMD_UDPPING;
-                json = data2json(&dat);
-                session->out_dat(json, strlen(json), 1);
-                free(json);
-            }
-        }
-
-        //P2PTUN_CMD_UDP_RESPTEST
-
-        break;
-    }
-
-    case P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO:
-    {
-        struct JSONDATA indat;
-        if (json2data(data, &indat) == 0)
-        {
-            if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
-            {
-                printf("打洞成功!!!!!!!!!!!!!!!!!!!!\n");
-                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED);
-                p2ptun_send_msg_connected(session);
-            }
-        }
-        break;
-    }
-
-    case P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED:
-    {
-        struct JSONDATA indat;
-        if (json2data(data, &indat) == 0)
-        {
-            if (indat.cmd == P2PTUN_CMD_MSG_RESPCONNECTED)
-            {
-                printf("确认连接成功!!!!!!!!!!!!!!!!!!!!\n");
-                p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
-                p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
-            }
-        }
-        break;
-    }
-
-    case P2PTUN_STATUS_CONNECTED:
-    {
-        struct JSONDATA indat;
-        if (json2data(data, &indat) == 0)
-        {
-            if (indat.cmd == P2PTUN_CMD_UDP_HB)
-            {
-                p2ptun_get_current_time(&session->recvhb_time);
-            }
-        }
-
-        break;
-    }
-
-    break;
-
-    default:
-        break;
-    }
+    return 0;
 }
 
 void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
@@ -393,10 +400,10 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
             p2ptun_send_udp_hb(session);
         }
 
-        if (cmp_sec2 > (P2PTUN_PING_TIME*3))
+        if (cmp_sec2 > (P2PTUN_PING_TIME * 3))
         {
             printf("超时了，断开链接\n");
-            p2ptun_setstatus(session,P2PTUN_STATUS_DISCONNECT);
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
         }
         break;
     }

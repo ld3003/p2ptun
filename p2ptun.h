@@ -10,6 +10,8 @@ extern "C"
 
 	typedef int (*OUTPUT_MSG)(char *msg);
 	typedef int (*OUTPUT_DAT)(unsigned char *data, int length , char pkg_type);
+	typedef int (*OUTPUT_P2PDAT)(unsigned char *data, int length);
+
 
 	enum
 	{
@@ -52,7 +54,7 @@ extern "C"
 
 		OUTPUT_MSG out_msg;
 		OUTPUT_DAT out_dat;
-		OUTPUT_DAT out_p2pdat;
+		OUTPUT_P2PDAT out_p2pdat;
 	};
 
 

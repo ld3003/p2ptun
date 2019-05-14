@@ -43,6 +43,16 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
 {
     if (session->cur_status == P2PTUN_CMD_MSG_CONNECTED)
     {
+        unsigned char *_tmp = malloc(length+1);
+        if (_tmp>0)
+        {
+            _tmp[0] = 'D';
+            memcpy(_tmp+1,data,length);
+
+            session->out_dat(_tmp,length+1,2);
+
+            free(_tmp);
+        }
         
     }
     return 0;

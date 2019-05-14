@@ -17,32 +17,18 @@ short udp_port;
 #define HOST_PORT_ECHO1 HOST_PORT_MSG+1
 #define HOST_PORT_ECHO2 HOST_PORT_MSG+2
 
+int p2pdataArrived_Fun(unsigned char *data, int len)
+{
+	printf("p2pdataArrived_Fun !!!\n");
+	return 0;
+}
+
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
 	pthread_mutex_lock(&mutex_lock);
 
-	//根据IP地址和端口判但是否是与服务器之间通讯的包
-	if ((addr->sin_port == htons(HOST_PORT_MSG)) && (addr->sin_addr.s_addr == inet_addr(HOST_ADDR)))
-	{
-		struct JSONDATA indat;
-		if (json2data(data, &indat) == 0)
-		{
-			if(strstr(indat.from,indat.to) == 0)
-			{
+	p2ptun_input_data(p2psession,data,len);
 
-			}
-			else{
-				printf("MSGRCV:%s\n", data);
-			}
-			
-		}
-		
-		p2ptun_input_msg(p2psession, data);
-	}
-	else
-	{
-		p2ptun_input_data(p2psession, data, len);
-	}
 	pthread_mutex_unlock(&mutex_lock);
 	return 0;
 }
@@ -99,7 +85,7 @@ void msgthread(void *p)
 	for (;;)
 	{
 
-#define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
+		#define MSGSTR "\{\"from\":\"%s\"\,\"to\":\"%s\"\}"
 		snprintf(tmp, 64, MSGSTR, p2psession->local_peername, p2psession->local_peername);
 		__send_msg(tmp);
 		sleep(5);
@@ -135,6 +121,7 @@ int main(int argc, char **argv)
 	p2psession->workmode = P2PTUN_WORKMODE_CLIENT;
 	p2psession->out_dat = __senddata_func;
 	p2psession->out_msg = __send_msg;
+	p2psession->out_p2pdat = p2pdataArrived_Fun;
 
 	while ((ret = getopt(argc, argv, "sc")) != -1)
 	{
