@@ -9,7 +9,6 @@
 
 #define USE_LOCAL_TESTING 1
 
-
 pthread_mutex_t mutex_lock;
 struct P2PTUN_CONN_SESSION *p2psession;
 short udp_port;
@@ -79,10 +78,12 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 
 #if (USE_LOCAL_TESTING == 1)
 		addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-		if(p2psession->workmode == P2PTUN_WORKMODE_CLIENT)
+		if (p2psession->workmode == P2PTUN_WORKMODE_CLIENT)
 		{
 			addr.sin_port = htons(SERVER_LOCAL_BIND_PORT);
-		}else{
+		}
+		else
+		{
 			addr.sin_port = htons(CLIENT_LOCAL_BIND_PORT);
 		}
 #endif
@@ -92,7 +93,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		break;
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //UDP MESSAGE 包 ，主要用于 服务器转发
-
+		printf("p2ptun_output_msg : %s\n", data);
 		bzero(&addr, sizeof(addr));
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
@@ -111,13 +112,20 @@ void udp_recv_thread(void *p)
 
 void session_timer_thread(void *p)
 {
+	unsigned int count = 0;
+	;
 	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
 	for (;;)
 	{
-		pthread_mutex_lock(&mutex_lock);
-		p2ptun_input_timer(session);
-		pthread_mutex_unlock(&mutex_lock);
-		sleep(1);
+		
+		if ((count % 1000) == 0)
+		{
+			pthread_mutex_lock(&mutex_lock);
+			p2ptun_input_timer(session);
+			pthread_mutex_unlock(&mutex_lock);
+			//printf("session_timer_thread \n");
+		}
+		usleep(1000 * 1000);
 	}
 	//
 }

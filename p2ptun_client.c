@@ -32,6 +32,7 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     //通过MSG通知对方向本地发送 UDP_TEST
     memset(&dat, 0x0, sizeof(dat));
     dat.cmd = P2PTUN_CMD_MSG_REQUESTUDPTEST;
+    dat.port = session->local_port++;
     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     json = data2json(&dat);
@@ -39,6 +40,7 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
     free(json);
 }
+
 
 static int p2ptun_send_msgping(struct P2PTUN_CONN_SESSION *session)
 {
@@ -155,7 +157,8 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                     snprintf(session->local_ipaddr, 32, "%s", indat.addr);
                     session->local_port = indat.port;
                     p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_GET_NETTYPE1);
-                    printf("RECV LOCAL AP %s %d\n", session->local_ipaddr, session->local_port);
+                    //printf("RECV LOCAL AP %s:%d\n", session->local_ipaddr, session->local_port);
+                    printf("当前网络ap : %s:%d\n", session->local_ipaddr, session->local_port);
                     char *json;
                     struct JSONDATA dat;
                     memset(&dat, 0x0, sizeof(dat));
@@ -227,6 +230,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
         case P2PTUN_STATUS_CONNECTING_WAIT_PONG:
             if (indat.cmd == P2PTUN_CMD_MSGPONG)
             {
+                
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
                 p2ptun_send_msg_getntype(session);
                 //
@@ -248,8 +252,22 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                     p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_UDPECHO);
                     p2ptun_send_dadong_pkg(session);
 
-                    printf("均为对称NAT\n");
+                    printf("均为非对称NAT\n");
+                }else
+                if ((session->local_nettype == 1) && (session->remote_nettype == 0))
+                {
+                    printf("本地为对称，对方为非对称 NAT\n");
+
+
+
+
+
+                }else
+                if ((session->local_nettype == 0) && (session->remote_nettype == 1))
+                {
+                    
                 }
+                
             }
 
             break;

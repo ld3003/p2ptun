@@ -30,6 +30,8 @@ int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 
 int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
+    printf("p2ptun_input_msg : %s\n",msg);
+    
     switch (session->workmode)
     {
     case P2PTUN_WORKMODE_CLIENT:

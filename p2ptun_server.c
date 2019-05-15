@@ -63,6 +63,11 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             json = data2json(&dat);
             session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
             free(json);
+
+            //获取本次port
+            printf("session->remote_port = %d\n",indat.port);
+            session->remote_port = indat.port;
+
         }
 
         if (indat.cmd == P2PTUN_CMD_MSG_CONNECTED)
