@@ -98,6 +98,19 @@ static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
     free(json);
 }
 
+static int p2ptun_send_disconnect(struct P2PTUN_CONN_SESSION *session)
+{
+    char *json;
+    struct JSONDATA dat;
+    memset(&dat, 0x0, sizeof(dat));
+    dat.cmd = P2PTUN_CMD_MSG_DISCONNECT;
+    snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
+    snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
+    json = data2json(&dat);
+    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
+    free(json);
+}
+
 int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
     struct JSONDATA indat;
@@ -186,6 +199,12 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                     p2ptun_send_msg_connected(session);
                 }
             }
+            break;
+        }
+
+        case P2PTUN_CMD_MSG_DISCONNECT:
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
             break;
         }
 
@@ -411,7 +430,14 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
         {
             printf("超时了，断开链接\n");
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+            p2ptun_send_disconnect(session);
         }
+        break;
+    }
+    case P2PTUN_STATUS_DISCONNECT:
+    {
+        printf("重新链接……\n");
+        p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING);
         break;
     }
     default:

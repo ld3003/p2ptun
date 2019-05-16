@@ -35,6 +35,8 @@ typedef unsigned int p2ptun_uint32;
 #define P2PTUN_CMD_UDP_HB 107      /*< 隧道心跳消息 */
 #define P2PTUN_CMD_UDP_ECHOHB 8107 /*< 隧道心跳消息 */
 
+#define P2PTUN_CMD_MSG_DISCONNECT 108      /*< 隧道心跳消息 */
+
 #define P2PTUN_UDPPKG_TYPE_PING1 0
 #define P2PTUN_UDPPKG_TYPE_PING2 1
 #define P2PTUN_UDPPKG_TYPE_P2PMSG 2

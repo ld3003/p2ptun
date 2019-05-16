@@ -65,9 +65,8 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             free(json);
 
             //获取本次port
-            printf("session->remote_port = %d\n",indat.port);
+            printf("session->remote_port = %d\n", indat.port);
             session->remote_port = indat.port;
-
         }
 
         if (indat.cmd == P2PTUN_CMD_MSG_CONNECTED)
@@ -229,6 +228,12 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             break;
         }
 
+        case P2PTUN_CMD_MSG_DISCONNECT:
+        {
+            p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
+            break;
+        }
+
         case P2PTUN_STATUS_LISTEN:
         {
             if (indat.cmd == P2PTUN_CMD_MSGPING)
@@ -238,7 +243,6 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
         }
     }
 }
-
 
 void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session)
 {
