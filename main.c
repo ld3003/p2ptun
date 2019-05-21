@@ -61,15 +61,12 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_ECHO1);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
-		return send_linux_udp_data(&addr, data, len);
 		break;
 	case P2PTUN_UDPPKG_TYPE_PING2: //获取公网AP-2包 ，第二次主要用于探测是否处于对称网络
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_ECHO2);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
-		return send_linux_udp_data(&addr, data, len);
 		break;
-
 	case P2PTUN_UDPPKG_TYPE_P2PRAWDATA:
 	case P2PTUN_UDPPKG_TYPE_P2PMSG: //UDP MESSAGE 包 ，主要用于 P2P 之间的信令交互
 		addr.sin_family = AF_INET;
@@ -89,7 +86,6 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 #endif
 		//addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
-		return send_linux_udp_data(&addr, data, len);
 		break;
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //UDP MESSAGE 包 ，主要用于 服务器转发
@@ -98,9 +94,9 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
-		return send_linux_udp_data(&addr, data, len);
 		break;
 	}
+	send_linux_udp_data(&addr, data, len);
 }
 
 //thread ：
