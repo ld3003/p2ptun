@@ -30,7 +30,7 @@
 #include <float.h>
 #include <limits.h>
 #include <ctype.h>
-#include "JSON/cJSON.h"
+#include "cJSON.h"
 
 void *_malloc(size_t size)
 {
