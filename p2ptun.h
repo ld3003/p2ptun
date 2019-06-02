@@ -2,6 +2,7 @@
 #define __p2ptun_h__
 
 #include "p2ptun_common.h"
+#include "ikcp.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -52,10 +53,13 @@ extern "C"
 		struct P2PTUN_TIME recvhb_time;
 		struct P2PTUN_TIME reg_time;
 
+		ikcpcb *kcp;
+
 		OUTPUT_DAT out_dat;
 
 		//底层收到用户层的数据后回调此函数，应用层需要指定回调函数做接收数据的相应处理
 		OUTPUT_P2PDAT out_p2pdat;
+		OUTPUT_P2PDAT out_p2pdat_kcp;
 	};
 
 

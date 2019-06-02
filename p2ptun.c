@@ -19,19 +19,23 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
     session = malloc(sizeof(struct P2PTUN_CONN_SESSION));
     if (session <= 0)
         return -P2PTUN_MEMERR;
+
+    session->kcp = ikcp_create(0x11223344, (void *)0);
+
     return session;
 }
 
 int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 {
+    ikcp_release(session->kcp); //
     free(session);
     return 0;
 }
 
 int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 {
-    printf("p2ptun_input_msg : %s\n",msg);
-    
+    printf("p2ptun_input_msg : %s\n", msg);
+
     switch (session->workmode)
     {
     case P2PTUN_WORKMODE_CLIENT:
@@ -44,6 +48,7 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
 }
 int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
+
     if (session->cur_status == P2PTUN_STATUS_CONNECTED)
     {
         unsigned char *_tmp = malloc(length + 1);
@@ -60,6 +65,11 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
     return 0;
 }
 
+int p2ptun_input_p2pdata_kcp(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
+{
+    return ikcp_send(session->kcp, data, length);
+}
+
 int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
 
@@ -71,11 +81,30 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
             p2ptun_input_msg(session, data);
             break;
         case 'D':
+        {
+            int kcpdata_len;
+            unsigned char *kcpdata;
             session->out_p2pdat(data, length);
-            break;
+
+            /*
+            将数据交给KCP，然后立即通过RECV函数读取出来，再扔给上层,这样效率最高，不用轮训操作
+            */
+
+            ikcp_input(session->kcp, data, length);
+            kcpdata = malloc(kcpdata_len);
+            if (kcpdata > 0)
+            {
+                kcpdata_len = ikcp_recv(session->kcp, kcpdata, length);
+                if (kcpdata_len > 0)
+                    session->out_p2pdat_kcp(kcpdata_len, kcpdata_len);
+                printf("P2PDATA->KCP %d %d\n",length,kcpdata_len);
+                free(kcpdata);
+            }
+            
+        }
+        break;
         }
     }
-
 }
 
 void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
