@@ -35,7 +35,7 @@ typedef unsigned int p2ptun_uint32;
 #define P2PTUN_CMD_UDP_HB 107      /*< 隧道心跳消息 */
 #define P2PTUN_CMD_UDP_ECHOHB 8107 /*< 隧道心跳消息 */
 
-#define P2PTUN_CMD_MSG_DISCONNECT 108      /*< 隧道心跳消息 */
+#define P2PTUN_CMD_MSG_DISCONNECT 108 /*< 隧道心跳消息 */
 
 #define P2PTUN_UDPPKG_TYPE_PING1 0
 #define P2PTUN_UDPPKG_TYPE_PING2 1
@@ -55,5 +55,10 @@ void p2ptun_get_current_time(struct P2PTUN_TIME *time);
 int t1_sub_t2_sec(struct P2PTUN_TIME *t1, struct P2PTUN_TIME *t2);
 int t1_sub_t2_ms(struct P2PTUN_TIME *t1, struct P2PTUN_TIME *t2);
 int get_sub_tim_sec(struct P2PTUN_TIME *t2);
+int get_sub_tim_ms(struct P2PTUN_TIME *t2);
+
+void itimeofday(long *sec, long *usec);
+long long iclock64(void);
+long iclock();
 
 #endif

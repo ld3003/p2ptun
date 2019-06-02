@@ -24,7 +24,24 @@ short udp_port;
 
 int p2pdataArrived_Fun(unsigned char *data, int len)
 {
-	printf("p2pdataArrived_Fun !!!\n");
+	int i = 0;
+	for (i = 0; i < len; i++)
+	{
+		//printf("%02x ", data[i]);
+	}
+	printf("\np2pdataArrived_Fun !!!\n");
+	return 0;
+}
+
+int p2pdatakcpArrived_Fun(unsigned char *data, int len)
+{
+	int i = 0;
+	printf("\n@@@@@@@@@@@@@@@@@@@RECV KCP !!!\n");
+	for (i = 0; i < len; i++)
+	{
+		printf("%02x ", data[i]);
+	}
+	printf("\nRECV KCP !!!\n");
 	return 0;
 }
 
@@ -96,7 +113,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
 		break;
 	}
-	send_linux_udp_data(&addr, data, len);
+	return send_linux_udp_data(&addr, data, len);
 }
 
 //thread ：
@@ -113,15 +130,12 @@ void session_timer_thread(void *p)
 	struct P2PTUN_CONN_SESSION *session = (struct P2PTUN_CONN_SESSION *)p;
 	for (;;)
 	{
-		
-		if ((count % 1000) == 0)
-		{
-			pthread_mutex_lock(&mutex_lock);
-			p2ptun_input_timer(session);
-			pthread_mutex_unlock(&mutex_lock);
-			//printf("session_timer_thread \n");
-		}
-		usleep(1000 * 1000);
+		int x;
+		count++;
+		pthread_mutex_lock(&mutex_lock);
+		p2ptun_input_timer(session);
+		pthread_mutex_unlock(&mutex_lock);
+		usleep(1000);
 	}
 	//
 }
@@ -133,10 +147,19 @@ int main(int argc, char **argv)
 	pthread_t s1threadid;
 	pthread_t udpthread;
 
+	/*
+	struct P2PTUN_TIME tm;
+	p2ptun_get_current_time(&tm);
+	usleep(1000);
+	printf("CURRENT TIM %d\n",get_sub_tim_ms(&tm));
+	return 0;
+	*/
+
 	p2psession = p2ptun_alloc_session();
 	p2psession->workmode = P2PTUN_WORKMODE_CLIENT; /*<定义工作模式*/
 	p2psession->out_dat = __senddata_func;		   /*<定义工作模式*/
 	p2psession->out_p2pdat = p2pdataArrived_Fun;   /*<定义工作模式*/
+	p2psession->out_p2pdat_kcp = p2pdatakcpArrived_Fun;
 
 	/*根据运行输入参数 来决定 运行s端还是c端*/
 	while ((ret = getopt(argc, argv, "sc")) != -1)
@@ -179,10 +202,13 @@ int main(int argc, char **argv)
 
 	for (;;)
 	{
-		char *tmp = malloc(1024);
-		p2ptun_input_p2pdata(p2psession, tmp, 1024);
-		free(tmp);
-		sleep(1);
+		int x;
+		x = p2ptun_input_p2pdata_kcp(p2psession, "test!", 5);
+
+		printf("p2ptun_input_p2pdata_kcp %d\n", x);
+		if (x == 0)
+			usleep(100);
+		//sleep(1);
 	}
 	return 0;
 }
