@@ -12,7 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define ENABLE_KCP 1
+#define ENABLE_KCP 0
 
 int kcp_output(const char *buf, int len, struct IKCPCB *kcp, void *user)
 {
@@ -27,7 +27,7 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
     struct P2PTUN_CONN_SESSION *session;
     session = malloc(sizeof(struct P2PTUN_CONN_SESSION));
     if (session <= 0)
-        return -P2PTUN_MEMERR;
+        return 0;
 
 #if (ENABLE_KCP == 1)
     session->kcp = ikcp_create(0x00000000, (void *)session);
@@ -78,17 +78,17 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
             free(_tmp);
         }
     }
-    printf("p2ptun_input_p2pdata %d\n",ret);
+    printf("p2ptun_input_p2pdata %d\n", ret);
     return ret;
 }
 
 int p2ptun_input_p2pdata_kcp(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-    #if (ENABLE_KCP == 1)
+#if (ENABLE_KCP == 1)
     return ikcp_send(session->kcp, data, length);
-    #else
+#else
     return 0;
-    #endif
+#endif
 }
 
 int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
@@ -125,7 +125,9 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
                 }
                 printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
                 free(kcpdata);
-            }else{
+            }
+            else
+            {
                 printf("P2PDATA->KCP NODATA\n");
             }
 #endif
@@ -165,6 +167,7 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
         p2ptun_get_current_time(&session->routing_time);
     }
 
+#if 0
     //间隔5000ms发送注册包
     int regpkg_time = get_sub_tim_ms(&session->regpkg_time);
     if (regpkg_time >= 5000)
@@ -174,6 +177,7 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
         session->out_dat(tmp, strlen(tmp), P2PTUN_UDPPKG_TYPE_RELAYMSG);
         p2ptun_get_current_time(&session->regpkg_time);
     }
+#endif
 
     //
 }

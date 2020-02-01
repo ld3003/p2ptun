@@ -41,7 +41,6 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     free(json);
 }
 
-
 static int p2ptun_send_msgping(struct P2PTUN_CONN_SESSION *session)
 {
     char *json;
@@ -117,6 +116,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
     if (json2data(msg, &indat) == 0)
     {
 
+        printf("######### incmd %d status : %d\n", indat.cmd, session->cur_status);
         if (indat.cmd == P2PTUN_CMD_MSGPING)
         {
             char *json;
@@ -249,7 +249,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
         case P2PTUN_STATUS_CONNECTING_WAIT_PONG:
             if (indat.cmd == P2PTUN_CMD_MSGPONG)
             {
-                
+
                 p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_REMOTE_NETTYPE);
                 p2ptun_send_msg_getntype(session);
                 //
@@ -272,21 +272,14 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                     p2ptun_send_dadong_pkg(session);
 
                     printf("均为非对称NAT\n");
-                }else
-                if ((session->local_nettype == 1) && (session->remote_nettype == 0))
+                }
+                else if ((session->local_nettype == 1) && (session->remote_nettype == 0))
                 {
                     printf("本地为对称，对方为非对称 NAT\n");
-
-
-
-
-
-                }else
-                if ((session->local_nettype == 0) && (session->remote_nettype == 1))
-                {
-                    
                 }
-                
+                else if ((session->local_nettype == 0) && (session->remote_nettype == 1))
+                {
+                }
             }
 
             break;

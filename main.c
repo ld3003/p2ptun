@@ -6,8 +6,9 @@
 #include "cJSON.h"
 #include "msg2json.h"
 #include "linux_udp.h"
+#include "mqtt.h"
 
-#define USE_LOCAL_TESTING 1
+#define USE_LOCAL_TESTING 0
 
 pthread_mutex_t mutex_lock;
 struct P2PTUN_CONN_SESSION *p2psession;
@@ -17,10 +18,24 @@ short udp_port;
 #define SERVER_LOCAL_BIND_PORT 10087
 #define CLIENT_LOCAL_BIND_PORT 10078
 
-#define P2PTUNSRV_ADDR "47.93.103.232"
+#define P2PTUNSRV_ADDR "47.104.166.126"
 #define P2PTUNSRV_PORT_MSG 29001
 #define P2PTUNSRV_PORT_ECHO1 (P2PTUNSRV_PORT_MSG + 1)
 #define P2PTUNSRV_PORT_ECHO2 (P2PTUNSRV_PORT_MSG + 2)
+
+
+#include <stdio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/types.h>         
+#include <unistd.h>
+#include <strings.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+ 
+
 
 int p2pdataArrived_Fun(unsigned char *data, int len)
 {
@@ -52,7 +67,16 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 	p2ptun_input_data(p2psession, data, len);
 
 	pthread_mutex_unlock(&mutex_lock);
-	return 0;
+}
+
+void mqttArrived_Fun(char *from, char *msg)
+{
+	pthread_mutex_lock(&mutex_lock);
+	printf("################ %s\n", msg);
+	sendudpmsg(msg,udp_port);
+	//p2ptun_input_data(p2psession, msg, strlen(msg));
+
+	pthread_mutex_unlock(&mutex_lock);
 }
 
 void __send_msg(char *msg)
@@ -78,42 +102,38 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_ECHO1);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
+		send_linux_udp_data(&addr, data, len);
 		break;
 	case P2PTUN_UDPPKG_TYPE_PING2: //获取公网AP-2包 ，第二次主要用于探测是否处于对称网络
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_ECHO2);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
+		send_linux_udp_data(&addr, data, len);
 		break;
-	case P2PTUN_UDPPKG_TYPE_P2PRAWDATA:
 	case P2PTUN_UDPPKG_TYPE_P2PMSG: //UDP MESSAGE 包 ，主要用于 P2P 之间的信令交互
+	case P2PTUN_UDPPKG_TYPE_P2PRAWDATA:
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
 		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
-
-#if (USE_LOCAL_TESTING == 1)
-		addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-		if (p2psession->workmode == P2PTUN_WORKMODE_CLIENT)
-		{
-			addr.sin_port = htons(SERVER_LOCAL_BIND_PORT);
-		}
-		else
-		{
-			addr.sin_port = htons(CLIENT_LOCAL_BIND_PORT);
-		}
-#endif
 		//addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
+		send_linux_udp_data(&addr, data, len);
 		break;
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //UDP MESSAGE 包 ，主要用于 服务器转发
+#if 0
 		printf("p2ptun_output_msg : %s\n", data);
 		bzero(&addr, sizeof(addr));
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
 		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
+		send_linux_udp_data(&addr, data, len);
 		break;
+#else
+		send_p2psignal_msg(p2psession->remote_peername, data);
+		break;
+#endif
 	}
-	return send_linux_udp_data(&addr, data, len);
 }
 
 //thread ：
@@ -185,6 +205,10 @@ int main(int argc, char **argv)
 		}
 	}
 
+	set_mqtt_clientid(p2psession->local_peername);
+	set_mqttrecv_callback(mqttArrived_Fun);
+	p2psignal_subscribe();
+
 	pthread_mutex_init(&mutex_lock, NULL);
 
 	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
@@ -202,13 +226,14 @@ int main(int argc, char **argv)
 
 	for (;;)
 	{
+		//
 		int x;
 		x = p2ptun_input_p2pdata_kcp(p2psession, "test!", 5);
 
-		printf("p2ptun_input_p2pdata_kcp %d\n", x);
-		if (x == 0)
-			usleep(100);
-		//sleep(1);
+		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
+		//if (x == 0)
+		//	usleep(100);
+		sleep(1);
 	}
 	return 0;
 }
