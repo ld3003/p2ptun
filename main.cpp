@@ -1,7 +1,20 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
-extern "C"{ //因为cpp文件默认定义了该宏),则采用C语言方式进行编译
+#include <stdio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <strings.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <queue>
+#include <memory>
+extern "C"
+{ //因为cpp文件默认定义了该宏),则采用C语言方式进行编译
 #include "p2ptun.h"
 #include "cJSON.h"
 #include "msg2json.h"
@@ -11,10 +24,17 @@ extern "C"{ //因为cpp文件默认定义了该宏),则采用C语言方式进行
 
 #define USE_LOCAL_TESTING 0
 
+#define RUN_TEST printf("RUN_TEST @@@@@@@@@@  FUNCTION:%s:%d\n", __FUNCTION__, __LINE__);
+
 pthread_mutex_t mutex_lock;
 struct P2PTUN_CONN_SESSION *p2psession;
 short udp_port;
-//callback:
+pthread_t s1threadid;
+pthread_t udpthread;
+pthread_t processqueueid;
+pthread_mutex_t processqueueMutex;
+pthread_cond_t processqueueCond;
+std::queue<unsigned char *> dataqueue;
 
 #define SERVER_LOCAL_BIND_PORT 10087
 #define CLIENT_LOCAL_BIND_PORT 10078
@@ -24,20 +44,7 @@ short udp_port;
 #define P2PTUNSRV_PORT_ECHO1 (P2PTUNSRV_PORT_MSG + 1)
 #define P2PTUNSRV_PORT_ECHO2 (P2PTUNSRV_PORT_MSG + 2)
 
-
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/types.h>         
-#include <unistd.h>
-#include <strings.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <fcntl.h>
- 
-
-
+/*p2p 远端的用户数据发过来的回调函数*/
 int p2pdataArrived_Fun(unsigned char *data, int len)
 {
 	int i = 0;
@@ -49,6 +56,7 @@ int p2pdataArrived_Fun(unsigned char *data, int len)
 	return 0;
 }
 
+/*p2p 远端的用户数据（KCP）发过来的回调函数*/
 int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 {
 	int i = 0;
@@ -61,33 +69,52 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 	return 0;
 }
 
+/*本地绑定的UDP端口接收到数据的回调函数*/
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
+
+	RUN_TEST;
+	pthread_mutex_lock(&processqueueMutex);
+	unsigned char *tmp = (unsigned char *)malloc(len + 4);
+	if (tmp > 0)
+	{
+		memcpy(tmp + 4, data, len);
+		*(unsigned int *)(tmp) = len;
+		dataqueue.push(tmp);
+		pthread_cond_signal(&processqueueCond);
+	}
+	pthread_mutex_unlock(&processqueueMutex);
+#if 0
 	pthread_mutex_lock(&mutex_lock);
-
 	p2ptun_input_data(p2psession, data, len);
-
 	pthread_mutex_unlock(&mutex_lock);
+#endif
 }
 
+/*本地MQTT接收到数据的回调函数*/
 int mqttArrived_Fun(char *from, char *msg)
 {
+	RUN_TEST;
+	pthread_mutex_lock(&processqueueMutex);
+	unsigned char *tmp = (unsigned char *)malloc(strlen(msg) + 4);
+	if (tmp > 0)
+	{
+		memcpy(tmp + 4, msg, strlen(msg));
+		*(unsigned int *)(tmp) = strlen(msg);
+		dataqueue.push((tmp));
+		RUN_TEST;
+		pthread_cond_signal(&processqueueCond);
+	}
+	pthread_mutex_unlock(&processqueueMutex);
+
+#if 0
 	pthread_mutex_lock(&mutex_lock);
-	p2ptun_input_data(p2psession, (unsigned char*)msg, strlen(msg));
+	p2ptun_input_data(p2psession, (unsigned char *)msg, strlen(msg));
 	pthread_mutex_unlock(&mutex_lock);
+#endif
 }
 
-int __send_msg(char *msg)
-{
-	struct sockaddr_in addr;
-	bzero(&addr, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
-	addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
-	printf("MSGSND:%s\n", msg);
-	return send_linux_udp_data(&addr, (unsigned char*)msg, strlen(msg));
-}
-
+/*提供给协议栈的用的 ，UDP数据发送接口 ,此接口内会区分UDP打洞数据，信令控制数据，有效载荷数据*/
 int __senddata_func(unsigned char *data, int len, char pkgtype)
 {
 
@@ -118,18 +145,52 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		break;
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //P2P信令
-		send_p2psignal_msg((char*)p2psession->remote_peername, (char*)data);
+		send_p2psignal_msg((char *)p2psession->remote_peername, (char *)data);
 		break;
 	}
 }
 
 //thread ：
+/*数据队列处理线程*/
+void *processqueue(void *p)
+{
+	pthread_mutex_unlock(&processqueueMutex);
+	for (;;)
+	{
+		RUN_TEST;
+		pthread_mutex_lock(&processqueueMutex);
+		if (dataqueue.size() > 0)
+		{
+			unsigned char *tmp = dataqueue.front();
+			dataqueue.pop();
 
+			unsigned int length = *((unsigned int *)tmp);
+			RUN_TEST;
+			p2ptun_input_data(p2psession, tmp + 4, length);
+			free((void *)tmp);
+		}
+		else
+		{
+			RUN_TEST;
+			pthread_cond_wait(&processqueueCond, &processqueueMutex);
+		}
+
+		pthread_mutex_unlock(&processqueueMutex);
+	}
+	/*
+		pthread_mutex_lock(&mCommandMutex);
+		OSAL_Queue(&mQueueCommand, &mQueueElement[CMD_QUEUE_ADAS_SET_MODE]);
+		pthread_cond_signal(&mCommandCond);
+		pthread_mutex_unlock(&mCommandMutex);
+	*/
+}
+/*本地UDP数据接收线程*/
 void *udp_recv_thread(void *p)
 {
 	create_udp_sock(0, udpArrived_Fun);
+	return 0;
 }
-
+/*协议栈时钟输入线程*/
 void *session_timer_thread(void *p)
 {
 	unsigned int count = 0;
@@ -144,15 +205,13 @@ void *session_timer_thread(void *p)
 		pthread_mutex_unlock(&mutex_lock);
 		usleep(1000);
 	}
+	return 0;
 	//
 }
 
 int main(int argc, char **argv)
 {
 	int ret;
-
-	pthread_t s1threadid;
-	pthread_t udpthread;
 
 	/*
 	struct P2PTUN_TIME tm;
@@ -161,6 +220,9 @@ int main(int argc, char **argv)
 	printf("CURRENT TIM %d\n",get_sub_tim_ms(&tm));
 	return 0;
 	*/
+
+	pthread_mutex_init(&processqueueMutex, NULL);
+	pthread_cond_init(&processqueueCond, NULL);
 
 	p2psession = p2ptun_alloc_session();
 	p2psession->workmode = P2PTUN_WORKMODE_CLIENT; /*<定义工作模式*/
@@ -192,16 +254,18 @@ int main(int argc, char **argv)
 		}
 	}
 
-	printf("RUN_TEST 1\n");
-
 	set_mqtt_clientid(p2psession->local_peername);
-	printf("RUN_TEST 2\n");
 	set_mqttrecv_callback(mqttArrived_Fun);
-	printf("RUN_TEST 3\n");
 	p2psignal_subscribe();
-	printf("RUN_TEST 4\n");
 
 	pthread_mutex_init(&mutex_lock, NULL);
+
+	printf("create ququethread !\n");
+	if ((pthread_create(&processqueueid, NULL, processqueue, (void *)0)) == -1)
+	{
+		printf("create error !\n");
+		return -1;
+	}
 
 	if ((pthread_create(&udpthread, NULL, udp_recv_thread, (void *)NULL)) == -1)
 	{
@@ -220,7 +284,7 @@ int main(int argc, char **argv)
 	{
 		//
 		int x;
-		x = p2ptun_input_p2pdata_kcp(p2psession, (unsigned char*)"test!", 5);
+		x = p2ptun_input_p2pdata_kcp(p2psession, (unsigned char *)"test!", 5);
 
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)

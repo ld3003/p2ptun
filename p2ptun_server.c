@@ -137,6 +137,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             {
                 if (indat.cmd == P2PTUN_CMD_UDP_HB)
                 {
+                    printf("recv hb\n");
                     p2ptun_get_current_time(&session->recvhb_time);
                 }
             }
