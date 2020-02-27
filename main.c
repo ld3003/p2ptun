@@ -72,8 +72,7 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 void mqttArrived_Fun(char *from, char *msg)
 {
 	pthread_mutex_lock(&mutex_lock);
-	printf("[MQTT RECV --> LOCALUDP]%s\n", msg);
-	sendMQTTudpmsg(msg,udp_port);
+	p2ptun_input_data(p2psession, msg, strlen(msg));
 	pthread_mutex_unlock(&mutex_lock);
 }
 

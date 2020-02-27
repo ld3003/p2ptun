@@ -64,25 +64,3 @@ void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb)
         }
     }
 }
-
-int sendMQTTudpmsg(char *msg, unsigned short localport)
-{
-
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (sock <= 0)
-        return -1;
-
-    char buf[32];
-
-    struct sockaddr_in server;
-    server.sin_family = AF_INET;
-    server.sin_port = htons(localport);
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-    sendto(sock, msg, strlen(msg), 0, (struct sockaddr *)&server, sizeof(server));
-
-    close(sock);
-
-    return 0;
-}

@@ -15,8 +15,5 @@ typedef void (*UDP_RECV_PACKAGE)(struct sockaddr_in *addr, unsigned char *data, 
 void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb);
 int send_linux_udp_data(struct sockaddr_in *addr, unsigned char *data, int len);
 
-//目的是将 MQTT 数据转为 UDP 数据
-int sendMQTTudpmsg(char *msg, unsigned short localport);
-
 
 #endif
