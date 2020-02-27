@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
-
+extern "C"{ //因为cpp文件默认定义了该宏),则采用C语言方式进行编译
 #include "p2ptun.h"
 #include "cJSON.h"
 #include "msg2json.h"
 #include "linux_udp.h"
 #include "mqtt.h"
+}
 
 #define USE_LOCAL_TESTING 0
 
@@ -69,14 +70,14 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 	pthread_mutex_unlock(&mutex_lock);
 }
 
-void mqttArrived_Fun(char *from, char *msg)
+int mqttArrived_Fun(char *from, char *msg)
 {
 	pthread_mutex_lock(&mutex_lock);
-	p2ptun_input_data(p2psession, msg, strlen(msg));
+	p2ptun_input_data(p2psession, (unsigned char*)msg, strlen(msg));
 	pthread_mutex_unlock(&mutex_lock);
 }
 
-void __send_msg(char *msg)
+int __send_msg(char *msg)
 {
 	struct sockaddr_in addr;
 	bzero(&addr, sizeof(addr));
@@ -84,7 +85,7 @@ void __send_msg(char *msg)
 	addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
 	addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
 	printf("MSGSND:%s\n", msg);
-	return send_linux_udp_data(&addr, msg, strlen(msg));
+	return send_linux_udp_data(&addr, (unsigned char*)msg, strlen(msg));
 }
 
 int __senddata_func(unsigned char *data, int len, char pkgtype)
@@ -117,19 +118,19 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		break;
 
 	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //P2P信令
-		send_p2psignal_msg(p2psession->remote_peername, data);
+		send_p2psignal_msg((char*)p2psession->remote_peername, (char*)data);
 		break;
 	}
 }
 
 //thread ：
 
-void udp_recv_thread(void *p)
+void *udp_recv_thread(void *p)
 {
 	create_udp_sock(0, udpArrived_Fun);
 }
 
-void session_timer_thread(void *p)
+void *session_timer_thread(void *p)
 {
 	unsigned int count = 0;
 	;
@@ -219,7 +220,7 @@ int main(int argc, char **argv)
 	{
 		//
 		int x;
-		x = p2ptun_input_p2pdata_kcp(p2psession, "test!", 5);
+		x = p2ptun_input_p2pdata_kcp(p2psession, (unsigned char*)"test!", 5);
 
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
