@@ -48,11 +48,7 @@ std::queue<unsigned char *> dataqueue;
 int p2pdataArrived_Fun(unsigned char *data, int len)
 {
 	int i = 0;
-	for (i = 0; i < len; i++)
-	{
-		printf("%02x ", data[i]);
-	}
-	printf("@@@@@@@@@@@@@ p2pdataArrived_Fun !!!\n");
+	//printf("@@@@@@@@@@@@@ p2pdataArrived_Fun !!!\n");
 	return 0;
 }
 
@@ -277,15 +273,17 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		//
+
+		sleep(10000);
 		int x;
-		printf("send data ---- > %d\n");
+		//printf("send data ---- > %d\n");
 		char buffer[1024];
 		x = p2ptun_input_p2pdata(p2psession, (unsigned char *)buffer, 1024);
 
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
 		//	usleep(100);
-		usleep(1000*16);
+		usleep(1000);
 	}
 	return 0;
 }

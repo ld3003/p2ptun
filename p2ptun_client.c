@@ -32,7 +32,7 @@ static int p2ptun_send_dadong_pkg(struct P2PTUN_CONN_SESSION *session)
     //通过MSG通知对方向本地发送 UDP_TEST
     memset(&dat, 0x0, sizeof(dat));
     dat.cmd = P2PTUN_CMD_MSG_REQUESTUDPTEST;
-    dat.port = session->local_port++;
+    dat.port = session->local_port;
     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     json = data2json(&dat);
@@ -194,7 +194,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
             {
                 if (indat.cmd == P2PTUN_CMD_UDP_RESPTEST)
                 {
-                    printf("打洞成功!!!!!!!!!!!!!!!!!!!!\n");
+                    printf("收到远端PC的UDP数据打洞成功!!!!!!!!!!!!!!!!!!!!\n");
                     p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTING_WAIT_CONNECTED);
                     p2ptun_send_msg_connected(session);
                 }
@@ -422,7 +422,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
 
         if (cmp_sec2 > (P2PTUN_SENDHB_TIME * 3))
         {
-            printf("超时了，断开链接\n");
+            printf("超时了，断开链接 %d \n",cmp_sec2);
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);
             p2ptun_send_disconnect(session);
         }

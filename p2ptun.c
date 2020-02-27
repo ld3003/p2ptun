@@ -78,7 +78,7 @@ int p2ptun_input_p2pdata(struct P2PTUN_CONN_SESSION *session, unsigned char *dat
             free(_tmp);
         }
     }
-    printf("p2ptun_input_p2pdata %d\n", ret);
+    //printf("p2ptun_input_p2pdata %d\n", ret);
     return ret;
 }
 
