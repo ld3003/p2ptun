@@ -50,9 +50,9 @@ int p2pdataArrived_Fun(unsigned char *data, int len)
 	int i = 0;
 	for (i = 0; i < len; i++)
 	{
-		//printf("%02x ", data[i]);
+		printf("%02x ", data[i]);
 	}
-	printf("\np2pdataArrived_Fun !!!\n");
+	printf("@@@@@@@@@@@@@ p2pdataArrived_Fun !!!\n");
 	return 0;
 }
 
@@ -73,7 +73,6 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
 
-	RUN_TEST;
 	pthread_mutex_lock(&processqueueMutex);
 	unsigned char *tmp = (unsigned char *)malloc(len + 4);
 	if (tmp > 0)
@@ -94,7 +93,6 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 /*本地MQTT接收到数据的回调函数*/
 int mqttArrived_Fun(char *from, char *msg)
 {
-	RUN_TEST;
 	pthread_mutex_lock(&processqueueMutex);
 	unsigned char *tmp = (unsigned char *)malloc(strlen(msg) + 4);
 	if (tmp > 0)
@@ -102,7 +100,6 @@ int mqttArrived_Fun(char *from, char *msg)
 		memcpy(tmp + 4, msg, strlen(msg));
 		*(unsigned int *)(tmp) = strlen(msg);
 		dataqueue.push((tmp));
-		RUN_TEST;
 		pthread_cond_signal(&processqueueCond);
 	}
 	pthread_mutex_unlock(&processqueueMutex);
@@ -157,7 +154,6 @@ void *processqueue(void *p)
 	pthread_mutex_unlock(&processqueueMutex);
 	for (;;)
 	{
-		RUN_TEST;
 		pthread_mutex_lock(&processqueueMutex);
 		if (dataqueue.size() > 0)
 		{
@@ -165,13 +161,11 @@ void *processqueue(void *p)
 			dataqueue.pop();
 
 			unsigned int length = *((unsigned int *)tmp);
-			RUN_TEST;
 			p2ptun_input_data(p2psession, tmp + 4, length);
 			free((void *)tmp);
 		}
 		else
 		{
-			RUN_TEST;
 			pthread_cond_wait(&processqueueCond, &processqueueMutex);
 		}
 
@@ -284,12 +278,14 @@ int main(int argc, char **argv)
 	{
 		//
 		int x;
-		x = p2ptun_input_p2pdata_kcp(p2psession, (unsigned char *)"test!", 5);
+		printf("send data ---- > %d\n");
+		char buffer[1024];
+		x = p2ptun_input_p2pdata(p2psession, (unsigned char *)buffer, 1024);
 
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
 		//	usleep(100);
-		sleep(1);
+		usleep(1000*16);
 	}
 	return 0;
 }
