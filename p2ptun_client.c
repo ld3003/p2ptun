@@ -116,7 +116,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
     if (json2data(msg, &indat) == 0)
     {
 
-        printf("######### incmd %d status : %d\n", indat.cmd, session->cur_status);
+        printf("[IN PKG] incmd %d status : %d\n", indat.cmd, session->cur_status);
         if (indat.cmd == P2PTUN_CMD_MSGPING)
         {
             char *json;

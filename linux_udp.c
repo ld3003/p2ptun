@@ -65,7 +65,7 @@ void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb)
     }
 }
 
-int sendudpmsg(char *msg, unsigned short localport)
+int sendMQTTudpmsg(char *msg, unsigned short localport)
 {
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);

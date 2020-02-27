@@ -72,10 +72,8 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 void mqttArrived_Fun(char *from, char *msg)
 {
 	pthread_mutex_lock(&mutex_lock);
-	printf("################ %s\n", msg);
-	sendudpmsg(msg,udp_port);
-	//p2ptun_input_data(p2psession, msg, strlen(msg));
-
+	printf("[MQTT RECV --> LOCALUDP]%s\n", msg);
+	sendMQTTudpmsg(msg,udp_port);
 	pthread_mutex_unlock(&mutex_lock);
 }
 
@@ -115,24 +113,13 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
 		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
-		//addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 		printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
 		send_linux_udp_data(&addr, data, len);
 		break;
 
-	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //UDP MESSAGE 包 ，主要用于 服务器转发
-#if 0
-		printf("p2ptun_output_msg : %s\n", data);
-		bzero(&addr, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(P2PTUNSRV_PORT_MSG);
-		addr.sin_addr.s_addr = inet_addr(P2PTUNSRV_ADDR);
-		send_linux_udp_data(&addr, data, len);
-		break;
-#else
+	case P2PTUN_UDPPKG_TYPE_RELAYMSG: //P2P信令
 		send_p2psignal_msg(p2psession->remote_peername, data);
 		break;
-#endif
 	}
 }
 
@@ -140,7 +127,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 
 void udp_recv_thread(void *p)
 {
-	create_udp_sock(udp_port, udpArrived_Fun);
+	create_udp_sock(0, udpArrived_Fun);
 }
 
 void session_timer_thread(void *p)
@@ -205,9 +192,14 @@ int main(int argc, char **argv)
 		}
 	}
 
+	printf("RUN_TEST 1\n");
+
 	set_mqtt_clientid(p2psession->local_peername);
+	printf("RUN_TEST 2\n");
 	set_mqttrecv_callback(mqttArrived_Fun);
+	printf("RUN_TEST 3\n");
 	p2psignal_subscribe();
+	printf("RUN_TEST 4\n");
 
 	pthread_mutex_init(&mutex_lock, NULL);
 
