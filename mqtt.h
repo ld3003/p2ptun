@@ -8,6 +8,11 @@
 #define USERNAME ""
 #define PASSWORD ""
 
+/*
+topic 规则
+IOTDEVICE/MEDIA/P2PCAM/{devid}
+*/
+
 struct MQTTClientData
 {
     unsigned char conn;

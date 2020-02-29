@@ -107,7 +107,7 @@ CONNECT:
 	}
 
 	//sub
-	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, mqttclientid);
+	snprintf(topicbuf, sizeof(topicbuf), "IOTDEVICE/MEDIA/P2PCAM/%s", P2PSIGNAL_TOPIC, mqttclientid);
 	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n",
 		   topicbuf, mqttclientid, QOS);
 	MQTTClient_subscribe(mqttclient, topicbuf, QOS);
@@ -148,7 +148,7 @@ int send_p2psignal_msg(char *to, char *msg)
 	pubmsg.payloadlen = strlen(msg);
 	pubmsg.qos = QOS;
 	pubmsg.retained = 0;
-	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, to);
+	snprintf(topicbuf, sizeof(topicbuf), "IOTDEVICE/MEDIA/P2PCAM/%s", P2PSIGNAL_TOPIC, to);
 	MQTTClient_publishMessage(mqttclient, topicbuf, &pubmsg, &mqtttoken);
 	printf("Waiting for up to %d seconds for publication of %s\n"
 		   "on topic %s for client with ClientID: %s MSG:%s\n",
