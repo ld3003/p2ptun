@@ -40,7 +40,7 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 	printf("Message arrived\n");
 	printf("topic: %s\n", topicName);
 
-	if (strstr(topicName, mqttclientid))
+	//if (strstr(topicName, mqttclientid))
 	{
 		if (p2psignal_cb)
 		{
