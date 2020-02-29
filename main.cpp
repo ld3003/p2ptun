@@ -83,6 +83,12 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 {
 
+	pthread_mutex_lock(&mutex_lock);
+	p2ptun_input_data(p2psession, data, len);
+	pthread_mutex_unlock(&mutex_lock);
+
+	#if 0
+
 	pthread_mutex_lock(&processqueueMutex);
 	unsigned char *tmp = (unsigned char *)malloc(len + 4);
 	if (tmp > 0)
@@ -97,6 +103,8 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 	pthread_mutex_lock(&mutex_lock);
 	p2ptun_input_data(p2psession, data, len);
 	pthread_mutex_unlock(&mutex_lock);
+#endif
+
 #endif
 }
 
