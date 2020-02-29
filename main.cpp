@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 	}
 
 	set_mqtt_clientid(p2psession->local_peername);
-	set_mqttrecv_callback(mqttArrived_Fun);
+	set_p2psignal_callback(mqttArrived_Fun);
 	start_mqtt_client();
 
 	pthread_mutex_init(&mutex_lock, NULL);

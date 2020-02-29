@@ -24,14 +24,17 @@
 
 #define DISCONNECT "out"
 
-static MQTT_RECV_MSG mqttrecv = 0;
-static char mqttclientid[128] = "NULL";
-int CONNECT = 1;
+//成员变量
+
+
+
 volatile MQTTClient_deliveryToken deliveredtoken;
 static MQTTClient mqttclient;
 static MQTTClient_deliveryToken mqtttoken;
-static struct MQTTClientData mqttcd;
 
+static struct MQTTClientData mqttcd;
+static MQTT_RECV_MSG p2psignal_cb = 0;
+static char mqttclientid[128] = "NULL";
 
 pthread_t mqttthread;
 static pthread_mutex_t mqttcMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -50,28 +53,19 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 
 	printf("Message arrived\n");
 	printf("topic: %s\n", topicName);
-	printf("message: ");
 
 	if (strstr(topicName, P2PSIGNAL_TOPIC))
 	{
-		if (mqttrecv)
+		if (p2psignal_cb)
 		{
-			mqttrecv(0, (char *)message->payload);
+			p2psignal_cb(0, (char *)message->payload);
 		}
 	}
 
-	payloadptr = message->payload;
-	if (strcmp(payloadptr, DISCONNECT) == 0)
+	if (strcmp(message->payload, DISCONNECT) == 0)
 	{
 		printf(" \n out!!");
-		CONNECT = 0;
 	}
-
-	for (i = 0; i < message->payloadlen; i++)
-	{
-		putchar(*payloadptr++);
-	}
-	printf("\n");
 
 	MQTTClient_freeMessage(&message);
 	MQTTClient_free(topicName);
@@ -90,7 +84,7 @@ void connlost(void *context, char *cause)
 
 int start_mqtt_client()
 {
-	if ((pthread_create(&mqttthread, NULL, p2psignal_subscribe, (void *)NULL)) == -1)
+	if ((pthread_create(&mqttthread, NULL, mqtt_client_thread, (void *)NULL)) == -1)
 	{
 		printf("create error !\n");
 		return -1;
@@ -98,7 +92,7 @@ int start_mqtt_client()
 	return 0;
 }
 
-void p2psignal_subscribe(void *p)
+void mqtt_client_thread(void *p)
 {
 	char topicbuf[512];
 	int rc;
@@ -131,6 +125,7 @@ CONNECT:
 		mqttcd.conn = 1;
 	}
 
+	//sub
 	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, CLIENTID);
 	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n",
 		   topicbuf, CLIENTID, QOS);
@@ -157,9 +152,9 @@ int set_mqtt_clientid(char *clientid)
 	///
 }
 
-int set_mqttrecv_callback(MQTT_RECV_MSG msgrecv)
+int set_p2psignal_callback(MQTT_RECV_MSG msgrecv)
 {
-	mqttrecv = msgrecv;
+	p2psignal_cb = msgrecv;
 	return 0;
 }
 int send_p2psignal_msg(char *to, char *msg)
