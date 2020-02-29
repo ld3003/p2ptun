@@ -12,10 +12,10 @@
 #include "mqtt.h"
 
 #define NUM_THREADS 2
-#define ADDRESS "tcp://easy-iot.cc:1883"	   //更改此处地址
-#define CLIENTID mqttclientid				   //更改此处客户端ID
+#define ADDRESS "tcp://easy-iot.cc:1883" //更改此处地址
+#define CLIENTID mqttclientid			 //更改此处客户端ID
 //#define SUB_CLIENTID "aaabbbccc_sub"		   //更改此处客户端ID
-#define P2PSIGNAL_TOPIC "p2p_ctrl_signal"	   //更改发送的话题
+#define P2PSIGNAL_TOPIC "p2p_ctrl_signal"	  //更改发送的话题
 #define PAYLOAD "Hello Man, Can you see me ?!" //
 #define QOS 1
 #define TIMEOUT 10000L
@@ -26,9 +26,16 @@
 
 static MQTT_RECV_MSG mqttrecv = 0;
 static char mqttclientid[128] = "NULL";
-
 int CONNECT = 1;
 volatile MQTTClient_deliveryToken deliveredtoken;
+static MQTTClient mqttclient;
+static MQTTClient_deliveryToken mqtttoken;
+static struct MQTTClientData mqttcd;
+
+
+pthread_t mqttthread;
+static pthread_mutex_t mqttcMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t mqttcCond = PTHREAD_COND_INITIALIZER;
 
 void delivered(void *context, MQTTClient_deliveryToken dt)
 {
@@ -49,7 +56,7 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 	{
 		if (mqttrecv)
 		{
-			mqttrecv(0, (char*)message->payload);
+			mqttrecv(0, (char *)message->payload);
 		}
 	}
 
@@ -73,8 +80,107 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 
 void connlost(void *context, char *cause)
 {
+	pthread_mutex_lock(&mqttcMutex);
 	printf("\nConnection lost\n");
 	printf(" cause: %s\n", cause);
+	mqttcd.conn = 0;
+	pthread_cond_signal(&mqttcCond);
+	pthread_mutex_unlock(&mqttcMutex);
+}
+
+int start_mqtt_client()
+{
+	if ((pthread_create(&mqttthread, NULL, p2psignal_subscribe, (void *)NULL)) == -1)
+	{
+		printf("create error !\n");
+		return -1;
+	}
+	return 0;
+}
+
+void p2psignal_subscribe(void *p)
+{
+	char topicbuf[512];
+	int rc;
+	int ch;
+
+	mqttcd.conn = 0;
+
+CONNECT:
+
+	pthread_mutex_lock(&mqttcMutex);
+	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+
+	MQTTClient_create(&mqttclient, ADDRESS, CLIENTID,
+					  MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	conn_opts.keepAliveInterval = 20;
+	conn_opts.cleansession = 1;
+	conn_opts.username = USERNAME;
+	conn_opts.password = PASSWORD;
+
+	MQTTClient_setCallbacks(mqttclient, NULL, connlost, msgarrvd, delivered);
+
+	if ((rc = MQTTClient_connect(mqttclient, &conn_opts)) != MQTTCLIENT_SUCCESS)
+	{
+		printf("Failed to connect, return code %d\n", rc);
+		mqttcd.conn = 0;
+		goto RECONNECT;
+	}
+	else
+	{
+		mqttcd.conn = 1;
+	}
+
+	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, CLIENTID);
+	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n",
+		   topicbuf, CLIENTID, QOS);
+	MQTTClient_subscribe(mqttclient, topicbuf, QOS);
+
+	//等待出现断开事件
+	pthread_cond_wait(&mqttcCond, &mqttcMutex);
+	if (mqttcd.conn == 0)
+	{
+	}
+
+RECONNECT:
+	MQTTClient_disconnect(mqttclient, 10000);
+	MQTTClient_destroy(&mqttclient);
+	sleep(3);
+	pthread_mutex_unlock(&mqttcMutex);
+	goto CONNECT;
+}
+
+int set_mqtt_clientid(char *clientid)
+{
+	snprintf(mqttclientid, sizeof(mqttclientid), "%s", clientid);
+	return 0;
+	///
+}
+
+int set_mqttrecv_callback(MQTT_RECV_MSG msgrecv)
+{
+	mqttrecv = msgrecv;
+	return 0;
+}
+int send_p2psignal_msg(char *to, char *msg)
+{
+	int rc;
+	char topicbuf[512];
+	pthread_mutex_lock(&mqttcMutex);
+	MQTTClient_message pubmsg = MQTTClient_message_initializer;
+	pubmsg.payload = msg;
+	pubmsg.payloadlen = strlen(msg);
+	pubmsg.qos = QOS;
+	pubmsg.retained = 0;
+	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, to);
+	MQTTClient_publishMessage(mqttclient, topicbuf, &pubmsg, &mqtttoken);
+	printf("Waiting for up to %d seconds for publication of %s\n"
+		   "on topic %s for client with ClientID: %s MSG:%s\n",
+		   (int)(TIMEOUT / 1000), PAYLOAD, topicbuf, CLIENTID, msg);
+	rc = MQTTClient_waitForCompletion(mqttclient, mqtttoken, TIMEOUT);
+	printf("Message with delivery token %d delivered %d\n", mqtttoken, rc);
+	pthread_mutex_unlock(&mqttcMutex);
+	return rc;
 }
 
 void *subClient(void *threadid)
@@ -167,67 +273,4 @@ void *pubClient(void *threadid)
 	MQTTClient_disconnect(client, 10000);
 	MQTTClient_destroy(&client);
 #endif
-}
-
-static MQTTClient mqttclient;
-static MQTTClient_deliveryToken mqtttoken;
-
-int p2psignal_subscribe()
-{
-	char topicbuf[512];
-	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-	int rc;
-	int ch;
-
-	MQTTClient_create(&mqttclient, ADDRESS, CLIENTID,
-					  MQTTCLIENT_PERSISTENCE_NONE, NULL);
-	conn_opts.keepAliveInterval = 20;
-	conn_opts.cleansession = 1;
-	conn_opts.username = USERNAME;
-	conn_opts.password = PASSWORD;
-
-	MQTTClient_setCallbacks(mqttclient, NULL, connlost, msgarrvd, delivered);
-
-	if ((rc = MQTTClient_connect(mqttclient, &conn_opts)) != MQTTCLIENT_SUCCESS)
-	{
-		printf("Failed to connect, return code %d\n", rc);
-		exit(EXIT_FAILURE);
-	}
-
-	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, CLIENTID);
-	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-		   "Press Q<Enter> to quit\n\n",
-		   topicbuf, CLIENTID, QOS);
-	MQTTClient_subscribe(mqttclient, topicbuf, QOS);
-}
-
-int set_mqtt_clientid(char *clientid)
-{
-	snprintf(mqttclientid, sizeof(mqttclientid), "%s", clientid);
-	return 0;
-	///
-}
-
-int set_mqttrecv_callback(MQTT_RECV_MSG msgrecv)
-{
-	mqttrecv = msgrecv;
-	return 0;
-}
-int send_p2psignal_msg(char *to, char *msg)
-{
-	int rc;
-	char topicbuf[512];
-	MQTTClient_message pubmsg = MQTTClient_message_initializer;
-	pubmsg.payload = msg;
-	pubmsg.payloadlen = strlen(msg);
-	pubmsg.qos = QOS;
-	pubmsg.retained = 0;
-	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, to);
-	MQTTClient_publishMessage(mqttclient, topicbuf, &pubmsg, &mqtttoken);
-	printf("Waiting for up to %d seconds for publication of %s\n"
-		   "on topic %s for client with ClientID: %s MSG:%s\n",
-		   (int)(TIMEOUT / 1000), PAYLOAD, topicbuf, CLIENTID, msg);
-	rc = MQTTClient_waitForCompletion(mqttclient, mqtttoken, TIMEOUT);
-	printf("Message with delivery token %d delivered %d\n", mqtttoken,rc);
-	return rc;
 }

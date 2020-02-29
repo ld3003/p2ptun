@@ -71,7 +71,7 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 		}
 		else
 		{
-			printf("recv seq errpr pre:%d cur:%d\n",prevval,*val);
+			printf("recv seq errpr pre:%d cur:%d\n", prevval, *val);
 			prevval = *val;
 		}
 	}
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 
 	set_mqtt_clientid(p2psession->local_peername);
 	set_mqttrecv_callback(mqttArrived_Fun);
-	p2psignal_subscribe();
+	start_mqtt_client();
 
 	pthread_mutex_init(&mutex_lock, NULL);
 
