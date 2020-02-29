@@ -11,22 +11,8 @@
 
 #include "mqtt.h"
 
-#define NUM_THREADS 2
-#define ADDRESS "tcp://easy-iot.cc:1883" //更改此处地址
-#define CLIENTID mqttclientid			 //更改此处客户端ID
-//#define SUB_CLIENTID "aaabbbccc_sub"		   //更改此处客户端ID
-#define P2PSIGNAL_TOPIC "p2p_ctrl_signal"	  //更改发送的话题
-#define PAYLOAD "Hello Man, Can you see me ?!" //
-#define QOS 1
-#define TIMEOUT 10000L
-#define USERNAME ""
-#define PASSWORD ""
-
-#define DISCONNECT "out"
 
 //成员变量
-
-
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 static MQTTClient mqttclient;
@@ -60,11 +46,6 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
 		{
 			p2psignal_cb(0, (char *)message->payload);
 		}
-	}
-
-	if (strcmp(message->payload, DISCONNECT) == 0)
-	{
-		printf(" \n out!!");
 	}
 
 	MQTTClient_freeMessage(&message);
@@ -105,7 +86,7 @@ CONNECT:
 	pthread_mutex_lock(&mqttcMutex);
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
-	MQTTClient_create(&mqttclient, ADDRESS, CLIENTID,
+	MQTTClient_create(&mqttclient, ADDRESS, mqttclientid,
 					  MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	conn_opts.keepAliveInterval = 20;
 	conn_opts.cleansession = 1;
@@ -126,9 +107,9 @@ CONNECT:
 	}
 
 	//sub
-	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, CLIENTID);
+	snprintf(topicbuf, sizeof(topicbuf), "%s/%s_sub", P2PSIGNAL_TOPIC, mqttclientid);
 	printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n",
-		   topicbuf, CLIENTID, QOS);
+		   topicbuf, mqttclientid, QOS);
 	MQTTClient_subscribe(mqttclient, topicbuf, QOS);
 
 	//等待出现断开事件
@@ -171,7 +152,7 @@ int send_p2psignal_msg(char *to, char *msg)
 	MQTTClient_publishMessage(mqttclient, topicbuf, &pubmsg, &mqtttoken);
 	printf("Waiting for up to %d seconds for publication of %s\n"
 		   "on topic %s for client with ClientID: %s MSG:%s\n",
-		   (int)(TIMEOUT / 1000), PAYLOAD, topicbuf, CLIENTID, msg);
+		   (int)(TIMEOUT / 1000), msg, topicbuf, mqttclientid, msg);
 	rc = MQTTClient_waitForCompletion(mqttclient, mqtttoken, TIMEOUT);
 	printf("Message with delivery token %d delivered %d\n", mqtttoken, rc);
 	pthread_mutex_unlock(&mqttcMutex);

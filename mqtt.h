@@ -1,6 +1,13 @@
 #ifndef __MQTT_H__
 #define __MQTT_H__
 
+#define ADDRESS "tcp://easy-iot.cc:1883"  //更改此处地址
+#define P2PSIGNAL_TOPIC "p2p_ctrl_signal" //更改发送的话题
+#define QOS 1
+#define TIMEOUT 10000L
+#define USERNAME ""
+#define PASSWORD ""
+
 struct MQTTClientData
 {
     unsigned char conn;
@@ -10,7 +17,6 @@ typedef int (*MQTT_RECV_MSG)(char *from, char *msg);
 
 int start_mqtt_client();
 void mqtt_client_thread(void *p);
-
 
 int set_mqtt_clientid(char *clientid);
 
