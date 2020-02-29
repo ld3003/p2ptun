@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include "ikcp.h"
 
 //read操作加上超时时间。
 int p2ptun_read_timeout(int fd, void *buf, unsigned int count, int time)
@@ -67,16 +68,17 @@ void itimeofday(long *sec, long *usec)
         *usec = time.tv_usec;
 }
 
-long long iclock64(void)
-{
-    long s, u;
-    long long value;
-    itimeofday(&s, &u);
-    value = ((long long)s) * 1000 + (u / 1000);
-    return value;
-}
 
-long iclock()
+unsigned int iclock()
 {
-    return (long)(iclock64() & 0xfffffffful);
+        long s, u;
+        IUINT64 value;
+
+        struct timeval time;
+        gettimeofday(&time, NULL);
+        s = time.tv_sec;
+        u = time.tv_usec;
+
+        value = ((unsigned long long)s) * 1000 + (u / 1000);
+        return (unsigned int)(value & 0xfffffffful);
 }

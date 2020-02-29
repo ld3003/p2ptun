@@ -58,7 +58,6 @@ int get_sub_tim_sec(struct P2PTUN_TIME *t2);
 int get_sub_tim_ms(struct P2PTUN_TIME *t2);
 
 void itimeofday(long *sec, long *usec);
-long long iclock64(void);
-long iclock();
+unsigned int iclock();
 
 #endif

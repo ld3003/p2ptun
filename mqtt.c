@@ -15,7 +15,7 @@
 #define ADDRESS "tcp://easy-iot.cc:1883"	   //更改此处地址
 #define CLIENTID mqttclientid				   //更改此处客户端ID
 //#define SUB_CLIENTID "aaabbbccc_sub"		   //更改此处客户端ID
-#define P2PSIGNAL_TOPIC "p2p_ctrl_signal"	  //更改发送的话题
+#define P2PSIGNAL_TOPIC "p2p_ctrl_signal"	   //更改发送的话题
 #define PAYLOAD "Hello Man, Can you see me ?!" //
 #define QOS 1
 #define TIMEOUT 10000L

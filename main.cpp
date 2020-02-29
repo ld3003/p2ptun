@@ -57,11 +57,25 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 {
 	int i = 0;
 	printf("\n@@@@@@@@@@@@@@@@@@@RECV KCP !!!\n");
-	for (i = 0; i < len; i++)
+	unsigned int *val = (unsigned int *)data;
+	static unsigned prevval = 0;
+	if (val == 0)
 	{
-		printf("%02x ", data[i]);
+		prevval = *val;
 	}
-	printf("\nRECV KCP !!!\n");
+	else
+	{
+		if (*val == (prevval + 1))
+		{
+			prevval = *val;
+		}
+		else
+		{
+			printf("recv seq errpr\n");
+			exit(0);
+		}
+	}
+
 	return 0;
 }
 
@@ -157,7 +171,9 @@ void *processqueue(void *p)
 			dataqueue.pop();
 
 			unsigned int length = *((unsigned int *)tmp);
+			pthread_mutex_lock(&mutex_lock);
 			p2ptun_input_data(p2psession, tmp + 4, length);
+			pthread_mutex_unlock(&mutex_lock);
 			free((void *)tmp);
 		}
 		else
@@ -167,12 +183,6 @@ void *processqueue(void *p)
 
 		pthread_mutex_unlock(&processqueueMutex);
 	}
-	/*
-		pthread_mutex_lock(&mCommandMutex);
-		OSAL_Queue(&mQueueCommand, &mQueueElement[CMD_QUEUE_ADAS_SET_MODE]);
-		pthread_cond_signal(&mCommandCond);
-		pthread_mutex_unlock(&mCommandMutex);
-	*/
 }
 /*本地UDP数据接收线程*/
 void *udp_recv_thread(void *p)
@@ -219,6 +229,8 @@ int main(int argc, char **argv)
 	p2psession->out_dat = __senddata_func;		   /*<定义工作模式*/
 	p2psession->out_p2pdat = p2pdataArrived_Fun;   /*<定义工作模式*/
 	p2psession->out_p2pdat_kcp = p2pdatakcpArrived_Fun;
+
+	p2ptun_set_arrived_callback(p2psession, p2pdataArrived_Fun, p2pdatakcpArrived_Fun);
 
 	/*根据运行输入参数 来决定 运行s端还是c端*/
 	while ((ret = getopt(argc, argv, "sc")) != -1)
@@ -274,16 +286,25 @@ int main(int argc, char **argv)
 	{
 		//
 
-		sleep(10000);
+		//sleep(10000);
 		int x;
 		//printf("send data ---- > %d\n");
-		char buffer[1024];
-		x = p2ptun_input_p2pdata(p2psession, (unsigned char *)buffer, 1024);
+		unsigned char buffer[1024];
+		static unsigned int val = 0;
+		*((unsigned char *)buffer) = val;
+		pthread_mutex_lock(&mutex_lock);
+		x = p2ptun_input_p2pdata_kcp(p2psession, buffer, 512);
+		if (x == P2PTUN_OK)
+		{
+			val++;
+			printf("ikcp_waitsnd %d\n", ikcp_waitsnd(p2psession->kcp));
+		}
+		pthread_mutex_unlock(&mutex_lock);
 
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
 		//	usleep(100);
-		usleep(1000);
+		usleep(1000 * 10);
 	}
 	return 0;
 }
