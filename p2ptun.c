@@ -94,7 +94,7 @@ int p2ptun_input_p2pdata_mux(struct P2PTUN_CONN_SESSION *session, unsigned char 
 int p2ptun_set_arrived_callback(struct P2PTUN_CONN_SESSION *session, OUTPUT_P2PDAT raw_cb, OUTPUT_P2PDAT kcp_cb)
 {
     session->out_p2pdat = raw_cb;
-    session->out_p2pdat_kcp = raw_cb;
+    session->out_p2pdat_kcp = kcp_cb;
     return 0;
 }
 
@@ -157,9 +157,10 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
             if (kcpdata > 0)
             {
                 kcpdata_len = ikcp_recv(session->kcp, kcpdata, length);
-                printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
+                
                 if (kcpdata_len > 0)
                 {
+                    printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
                     session->out_p2pdat_kcp(kcpdata, kcpdata_len);
                 }
                 free(kcpdata);

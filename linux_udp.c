@@ -54,7 +54,7 @@ void create_udp_sock(short port, UDP_RECV_PACKAGE recvpkg_cb)
         if (n > 0)
         {
             //inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port)
-            printf("RECV from %s : %d \n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+            //printf("RECV from %s : %d \n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
             recvpkg_cb(&clientAddr, udp_recv_buffer, n);
         }
         else

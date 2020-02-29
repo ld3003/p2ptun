@@ -58,8 +58,8 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 	int i = 0;
 	printf("\n@@@@@@@@@@@@@@@@@@@RECV KCP !!!\n");
 	unsigned int *val = (unsigned int *)data;
-	static unsigned prevval = 0;
-	if (val == 0)
+	static unsigned int prevval = 0;
+	if (*val == 0)
 	{
 		prevval = *val;
 	}
@@ -71,7 +71,7 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 		}
 		else
 		{
-			printf("recv seq errpr\n");
+			printf("recv seq errpr pre:%d cur:%d\n",prevval,*val);
 			exit(0);
 		}
 	}
@@ -147,7 +147,7 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(p2psession->remote_port);
 		addr.sin_addr.s_addr = inet_addr(p2psession->remote_ipaddr);
-		printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
+		//printf("[%d] send to remote_ipaddr : %s:%d\n", pkgtype, p2psession->remote_ipaddr, p2psession->remote_port);
 		send_linux_udp_data(&addr, data, len);
 		break;
 
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
 		//	usleep(100);
-		usleep(1000 * 10);
+		//usleep(1000 * 10);
 	}
 	return 0;
 }
