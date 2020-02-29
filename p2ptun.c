@@ -23,9 +23,42 @@ struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
     return session;
 }
 
+int p2ptun_initkcp(struct P2PTUN_CONN_SESSION *session)
+{
+#if (ENABLE_KCP == 1)
+    if (session->kcp > 0)
+    {
+        ikcp_release(session->kcp);
+    }
+    session->kcp = ikcp_create(0x0001, (void *)session);
+    session->kcp->output = kcp_output;
+
+#if !PRACTICAL_CONDITION
+
+    ikcp_wndsize(session->kcp, 1024, 1024);
+    ikcp_nodelay(session->kcp, 1, 1, 1, 1);
+    ikcp_setmtu(session->kcp, 548);
+    session->kcp->stream = 0;
+    session->kcp->rx_minrto = 5;
+
+#else
+
+    // equal to kcpp default config
+    ikcp_wndsize(session->kcp, 128, 128);
+    ikcp_nodelay(session->kcp, 1, 10, 1, 1);
+    session->kcp->stream = 0;
+    session->kcp->rx_minrto = 10;
+    ikcp_setmtu(session->kcp, 548);
+
+#endif
+#endif
+    return 0;
+}
+
 int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session)
 {
-    ikcp_release(session->kcp); //
+    if (session->kcp)
+        ikcp_release(session->kcp); //
     free(session);
     return 0;
 }
@@ -75,7 +108,6 @@ int p2ptun_set_arrived_callback(struct P2PTUN_CONN_SESSION *session, OUTPUT_P2PD
 
 int p2ptun_input_p2pdata_raw(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length)
 {
-
     return p2ptun_input_p2pdata_mux(session, data, length, 'D');
 }
 
@@ -83,14 +115,17 @@ int p2ptun_input_p2pdata_kcp(struct P2PTUN_CONN_SESSION *session, unsigned char 
 {
 #if (ENABLE_KCP == 1)
     int ret = -P2PTUN_ERROR;
-    if ((ikcp_waitsnd(session->kcp)) <= KCPBUFFER_COUNT)
+    if (session->kcp)
     {
-        ret = ikcp_send(session->kcp, data, length);
-        //ikcp_update(session->kcp, iclock());
-        ret = P2PTUN_OK;
-    }
-    else
-    {
+        if ((ikcp_waitsnd(session->kcp)) <= KCPBUFFER_COUNT)
+        {
+            ret = ikcp_send(session->kcp, data, length);
+            //ikcp_update(session->kcp, iclock());
+            ret = P2PTUN_OK;
+        }
+        else
+        {
+        }
     }
 
     return ret;
@@ -126,23 +161,25 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
             /*
             将数据交给KCP，然后立即通过RECV函数读取出来，再扔给上层,这样效率最高，不用轮训操作
             */
-
-            ikcp_input(session->kcp, data + 1, length - 1);
-            kcpdata = malloc(length);
-            if (kcpdata > 0)
+            if (session->kcp)
             {
-                kcpdata_len = ikcp_recv(session->kcp, kcpdata, length);
-                
-                if (kcpdata_len > 0)
+                ikcp_input(session->kcp, data + 1, length - 1);
+                kcpdata = malloc(length);
+                if (kcpdata > 0)
                 {
-                    printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
-                    session->out_p2pdat_kcp(kcpdata, kcpdata_len);
+                    kcpdata_len = ikcp_recv(session->kcp, kcpdata, length);
+
+                    if (kcpdata_len > 0)
+                    {
+                        printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
+                        session->out_p2pdat_kcp(kcpdata, kcpdata_len);
+                    }
+                    free(kcpdata);
                 }
-                free(kcpdata);
-            }
-            else
-            {
-                printf("P2PDATA->KCP NODATA\n");
+                else
+                {
+                    printf("P2PDATA->KCP NODATA\n");
+                }
             }
 
             break;
@@ -162,7 +199,8 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
     int cmp_kcpupdatetime = get_sub_tim_ms(&session->kcpupdate_time);
     if (cmp_kcpupdatetime >= 10)
     {
-        ikcp_update(session->kcp, iclock());
+        if (session->kcp)
+            ikcp_update(session->kcp, iclock());
         p2ptun_get_current_time(&session->kcpupdate_time);
     }
 #endif

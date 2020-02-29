@@ -69,6 +69,7 @@ extern "C"
 	};
 
 	struct P2PTUN_CONN_SESSION *p2ptun_alloc_session();
+	int p2ptun_initkcp(struct P2PTUN_CONN_SESSION *session);
 	int p2ptun_free_session(struct P2PTUN_CONN_SESSION *session);
 
 	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);

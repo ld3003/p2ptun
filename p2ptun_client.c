@@ -217,35 +217,7 @@ int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg)
                 {
                     printf("确认连接成功!!!!!!!!!!!!!!!!!!!!\n");
                     p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
-
-#if (ENABLE_KCP == 1)
-                    if (session->kcp > 0)
-                    {
-                        ikcp_release(session->kcp);
-                    }
-                    session->kcp = ikcp_create(0x0001, (void *)session);
-                    session->kcp->output = kcp_output;
-
-#if !PRACTICAL_CONDITION
-
-                    ikcp_wndsize(session->kcp, 1024, 1024);
-                    ikcp_nodelay(session->kcp, 1, 1, 1, 1);
-                    ikcp_setmtu(session->kcp, 548);
-                    session->kcp->stream = 0;
-                    session->kcp->rx_minrto = 5;
-
-#else
-
-                    // equal to kcpp default config
-                    ikcp_wndsize(session->kcp, 128, 128);
-                    ikcp_nodelay(session->kcp, 1, 10, 1, 1);
-                    session->kcp->stream = 0;
-                    session->kcp->rx_minrto = 10;
-                    ikcp_setmtu(session->kcp, 548);
-
-#endif
-#endif
-
+                    p2ptun_initkcp(session);
                     p2ptun_setstatus(session, P2PTUN_STATUS_CONNECTED);
                     printf("\n\n");
                     printf("--------------------------------------------------\n");
