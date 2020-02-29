@@ -141,6 +141,16 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
     {
         switch (data[0])
         {
+        case 'D':
+        case 'K':
+            p2ptun_get_current_time(&session->recvhb_time);
+            break;
+        default:
+            break;
+        }
+
+        switch (data[0])
+        {
         case '{':
             p2ptun_input_msg(session, data);
             break;

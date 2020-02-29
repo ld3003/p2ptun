@@ -72,7 +72,7 @@ int p2pdatakcpArrived_Fun(unsigned char *data, int len)
 		else
 		{
 			printf("recv seq errpr pre:%d cur:%d\n",prevval,*val);
-			exit(0);
+			prevval = *val;
 		}
 	}
 
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 			printf("ikcp_waitsnd %d\n", ikcp_waitsnd(p2psession->kcp));
 		}
 		pthread_mutex_unlock(&mutex_lock);
-		sleep(1);
+		//sleep(1);
 		//printf("p2ptun_input_p2pdata_kcp %d\n", x);
 		//if (x == 0)
 		//	usleep(100);

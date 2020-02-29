@@ -415,13 +415,21 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
     case P2PTUN_STATUS_CONNECTED:
     {
         int cmp_sec2 = get_sub_tim_sec(&session->recvhb_time);
+
+#if 0
         int cmp_sec = get_sub_tim_sec(&session->status_time);
         if ((cmp_sec % P2PTUN_SENDHB_TIME) == 0)
         {
             p2ptun_send_udp_hb(session);
         }
+#endif
 
-        if (cmp_sec2 > (P2PTUN_SENDHB_TIME * 5))
+        if ((cmp_sec2 % P2PTUN_SENDHB_TIME) == 0)
+        {
+            p2ptun_send_udp_hb(session);
+        }
+
+        if (cmp_sec2 > (P2PTUN_PKGTIMEOUT))
         {
             printf("超时了，断开链接 %d \n", cmp_sec2);
             p2ptun_setstatus(session, P2PTUN_STATUS_DISCONNECT);

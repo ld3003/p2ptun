@@ -3,7 +3,7 @@
 
 #define P2P_SESSION_TIMEOUT 20
 #define P2PTUN_SENDHB_TIME 2
-#define P2PTUN_PKGTIMEOUT 5
+#define P2PTUN_PKGTIMEOUT 5     //P2P消息超时时间
 
 typedef char p2ptun_int8;
 typedef unsigned char p2ptun_uint8;
