@@ -1,5 +1,7 @@
 #include "msg2json.h"
 #include "cJSON.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 int json2data(char *json, struct JSONDATA *dat)
 {
@@ -75,7 +77,6 @@ char *data2json(struct JSONDATA *dat)
 
     char *p;
     cJSON *pJsonRoot = NULL;
-    char tmpstr[32];
 
     pJsonRoot = cJSON_CreateObject();
     if (NULL == pJsonRoot)

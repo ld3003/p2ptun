@@ -14,6 +14,7 @@ extern "C"
 
 	typedef int (*OUTPUT_DAT)(unsigned char *data, int length, char pkg_type);
 	typedef int (*OUTPUT_P2PDAT)(unsigned char *data, int length);
+	typedef int (*OUTPUT_P2PEVENT)(void *ctx, int event);
 
 	enum
 	{
@@ -66,6 +67,7 @@ extern "C"
 		//底层收到用户层的数据后回调此函数，应用层需要指定回调函数做接收数据的相应处理
 		OUTPUT_P2PDAT out_p2pdat;
 		OUTPUT_P2PDAT out_p2pdat_kcp;
+		OUTPUT_P2PEVENT out_p2pevent;
 	};
 
 	struct P2PTUN_CONN_SESSION *p2ptun_alloc_session();

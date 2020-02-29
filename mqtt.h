@@ -2,7 +2,6 @@
 #define __MQTT_H__
 
 #define ADDRESS "tcp://easy-iot.cc:1883"  //更改此处地址
-#define P2PSIGNAL_TOPIC "p2p_ctrl_signal" //更改发送的话题
 #define QOS 1
 #define TIMEOUT 10000L
 #define USERNAME ""

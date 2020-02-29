@@ -14,7 +14,7 @@
 
 struct P2PTUN_CONN_SESSION *p2ptun_alloc_session()
 {
-    int ret;
+
     struct P2PTUN_CONN_SESSION *session;
     session = malloc(sizeof(struct P2PTUN_CONN_SESSION));
     if (session <= 0)
@@ -76,6 +76,8 @@ int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg)
         return p2ptun_input_msg_server(session, msg);
         break;
     }
+
+    return 0;
 }
 int p2ptun_input_p2pdata_mux(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length, unsigned char mux)
 {
@@ -119,7 +121,7 @@ int p2ptun_input_p2pdata_kcp(struct P2PTUN_CONN_SESSION *session, unsigned char 
     {
         if ((ikcp_waitsnd(session->kcp)) <= KCPBUFFER_COUNT)
         {
-            ret = ikcp_send(session->kcp, data, length);
+            ret = ikcp_send(session->kcp, (const char*)data, length);
             //ikcp_update(session->kcp, iclock());
             ret = P2PTUN_OK;
         }
@@ -152,11 +154,11 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
         switch (data[0])
         {
         case '{':
-            p2ptun_input_msg(session, data);
+            p2ptun_input_msg(session, (char*)data);
             break;
         case 'D':
         {
-            int kcpdata_len;
+
             unsigned char *kcpdata;
             session->out_p2pdat(data + 1, length - 1);
             break;
@@ -167,13 +169,13 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
         {
 
             int kcpdata_len;
-            unsigned char *kcpdata;
+            char *kcpdata;
             /*
             将数据交给KCP，然后立即通过RECV函数读取出来，再扔给上层,这样效率最高，不用轮训操作
             */
             if (session->kcp)
             {
-                ikcp_input(session->kcp, data + 1, length - 1);
+                ikcp_input(session->kcp, (const char*)(data + 1), length - 1);
                 kcpdata = malloc(length);
                 if (kcpdata > 0)
                 {
@@ -182,7 +184,7 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
                     if (kcpdata_len > 0)
                     {
                         printf("P2PDATA->KCP %d %d\n", length, kcpdata_len);
-                        session->out_p2pdat_kcp(kcpdata, kcpdata_len);
+                        session->out_p2pdat_kcp((unsigned char*)kcpdata, kcpdata_len);
                     }
                     free(kcpdata);
                 }
@@ -197,12 +199,12 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
 #endif
         }
     }
+
+    return 0;
 }
 
 void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
 {
-
-    char tmp[128];
 
 #if (ENABLE_KCP == 1)
     //10ms update kcp , 理论上应该用 ikcp_CHECK 来判断下次update时间

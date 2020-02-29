@@ -21,8 +21,9 @@ static int p2ptun_send_udp_hb(struct P2PTUN_CONN_SESSION *session)
     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
     dat.port = session->local_port;
     json = data2json(&dat);
-    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
+    session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
     free(json);
+    return 0;
 }
 
 int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
@@ -45,7 +46,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
             json = data2json(&dat);
-            session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
+            session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
             free(json);
 
             session->remote_port = indat.port;
@@ -61,7 +62,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
             json = data2json(&dat);
-            session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
+            session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
             free(json);
 
             //获取本次port
@@ -78,7 +79,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
             snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
             snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
             json = data2json(&dat);
-            session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
+            session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
             free(json);
 
             p2ptun_get_current_time(&session->recvhb_time); //将心跳计时器重新开始计时
@@ -118,7 +119,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     memset(&dat, 0x0, sizeof(dat));
                     dat.cmd = P2PTUN_CMD_MSGPING;
                     json = data2json(&dat);
-                    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_PING1);
+                    session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_PING1);
                     free(json);
                 }
                 else
@@ -160,7 +161,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     snprintf(dat.from, sizeof(dat.from), "%s", session->local_peername);
                     snprintf(dat.to, sizeof(dat.to), "%s", session->remote_peername);
                     json = data2json(&dat);
-                    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
+                    session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_P2PMSG);
                     free(json);
                 }
             }
@@ -201,7 +202,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     dat.port = session->local_port;
                     snprintf(dat.addr, sizeof(dat.addr), "%s", session->local_ipaddr);
                     json = data2json(&dat);
-                    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
+                    session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_RELAYMSG);
                     free(json);
                 }
             }
@@ -223,7 +224,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
                     memset(&dat, 0x0, sizeof(dat));
                     dat.cmd = P2PTUN_CMD_MSGPING;
                     json = data2json(&dat);
-                    session->out_dat(json, strlen(json), P2PTUN_UDPPKG_TYPE_PING1);
+                    session->out_dat((unsigned char*)json, strlen(json), P2PTUN_UDPPKG_TYPE_PING1);
                     free(json);
                 }
             }
@@ -245,6 +246,8 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
         }
         }
     }
+
+    return 0;
 }
 
 void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session)
