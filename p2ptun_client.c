@@ -422,7 +422,7 @@ void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session)
     {
         int cmp_sec2 = get_sub_tim_sec(&session->recvhb_time);
 
-#if 1
+#if 0
         int cmp_sec = get_sub_tim_sec(&session->status_time);
         if ((cmp_sec % 10) == 0)
         {

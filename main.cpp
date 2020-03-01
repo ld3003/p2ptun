@@ -87,7 +87,7 @@ void udpArrived_Fun(struct sockaddr_in *addr, unsigned char *data, int len)
 	p2ptun_input_data(p2psession, data, len);
 	pthread_mutex_unlock(&mutex_lock);
 
-	#if 0
+#if 0
 
 	pthread_mutex_lock(&processqueueMutex);
 	unsigned char *tmp = (unsigned char *)malloc(len + 4);
@@ -169,7 +169,6 @@ int __senddata_func(unsigned char *data, int len, char pkgtype)
 /*数据队列处理线程*/
 void *processqueue(void *p)
 {
-	pthread_mutex_unlock(&processqueueMutex);
 	for (;;)
 	{
 		pthread_mutex_lock(&processqueueMutex);
@@ -177,6 +176,7 @@ void *processqueue(void *p)
 		{
 			unsigned char *tmp = dataqueue.front();
 			dataqueue.pop();
+			pthread_mutex_unlock(&processqueueMutex);
 
 			unsigned int length = *((unsigned int *)tmp);
 			pthread_mutex_lock(&mutex_lock);
@@ -187,9 +187,10 @@ void *processqueue(void *p)
 		else
 		{
 			pthread_cond_wait(&processqueueCond, &processqueueMutex);
+			pthread_mutex_unlock(&processqueueMutex);
 		}
 
-		pthread_mutex_unlock(&processqueueMutex);
+		
 	}
 }
 /*本地UDP数据接收线程*/
