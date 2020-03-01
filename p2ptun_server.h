@@ -4,7 +4,7 @@
 #include "p2ptun.h"
 
 int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg);
-void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session);
+void p2ptun_client_update_server(struct P2PTUN_CONN_SESSION *session);
 
 
 #endif

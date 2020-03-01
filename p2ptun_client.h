@@ -5,6 +5,6 @@
 
 
 int p2ptun_input_msg_client(struct P2PTUN_CONN_SESSION *session, char *msg);
-void p2ptun_client_timer_client(struct P2PTUN_CONN_SESSION *session);
+void p2ptun_client_update_client(struct P2PTUN_CONN_SESSION *session);
 
 #endif

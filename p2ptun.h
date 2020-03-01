@@ -77,7 +77,7 @@ extern "C"
 	int p2ptun_input_msg(struct P2PTUN_CONN_SESSION *session, char *msg);
 	//下层协议栈送来的数据
 	int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length);
-	void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session);
+	void p2ptun_update(struct P2PTUN_CONN_SESSION *session);
 	void p2ptun_setstatus(struct P2PTUN_CONN_SESSION *session, unsigned char status);
 	int p2ptun_input_p2pdata_mux(struct P2PTUN_CONN_SESSION *session, unsigned char *data, int length, unsigned char mux);
 

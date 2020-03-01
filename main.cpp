@@ -210,7 +210,7 @@ void *session_timer_thread(void *p)
 		int x;
 		count++;
 		pthread_mutex_lock(&mutex_lock);
-		p2ptun_input_timer(session);
+		p2ptun_update(session);
 		pthread_mutex_unlock(&mutex_lock);
 		usleep(1000);
 	}

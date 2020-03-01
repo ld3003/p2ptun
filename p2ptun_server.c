@@ -250,7 +250,7 @@ int p2ptun_input_msg_server(struct P2PTUN_CONN_SESSION *session, char *msg)
     return 0;
 }
 
-void p2ptun_client_timer_server(struct P2PTUN_CONN_SESSION *session)
+void p2ptun_client_update_server(struct P2PTUN_CONN_SESSION *session)
 {
     switch (session->cur_status)
     {

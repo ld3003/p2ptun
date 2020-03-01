@@ -203,7 +203,7 @@ int p2ptun_input_data(struct P2PTUN_CONN_SESSION *session, unsigned char *data, 
     return 0;
 }
 
-void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
+void p2ptun_update(struct P2PTUN_CONN_SESSION *session)
 {
 
 #if (ENABLE_KCP == 1)
@@ -223,11 +223,11 @@ void p2ptun_input_timer(struct P2PTUN_CONN_SESSION *session)
     {
         if (session->workmode == P2PTUN_WORKMODE_CLIENT)
         {
-            p2ptun_client_timer_client(session);
+            p2ptun_client_update_client(session);
         }
         else
         {
-            p2ptun_client_timer_server(session);
+            p2ptun_client_update_server(session);
         }
         p2ptun_get_current_time(&session->routing_time);
     }
